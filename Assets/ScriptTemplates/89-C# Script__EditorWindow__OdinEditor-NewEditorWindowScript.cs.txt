@@ -1,0 +1,20 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+using Sirenix.OdinInspector;
+using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
+using Sirenix.Utilities;
+
+namespace #NAMESPACE# {
+    public class #SCRIPTNAME# : OdinEditorWindow {
+        [MenuItem("Custom/#SCRIPTNAME#")]
+		static void CreateWindow() {
+			// Get existing open window or if none, make a new one:
+			var window = GetWindow<#SCRIPTNAME#>("#SCRIPTNAME#");
+			// Make it be in center of screen and setting size.
+			window.position = GUIHelper.GetEditorWindowRect().AlignCenter(400, 200);
+		}
+    }
+}

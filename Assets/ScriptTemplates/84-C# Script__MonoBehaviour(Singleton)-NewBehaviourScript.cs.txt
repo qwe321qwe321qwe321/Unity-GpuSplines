@@ -1,0 +1,73 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace #NAMESPACE# {
+    public class #SCRIPTNAME# : MonoBehaviour {
+
+		#region Singleton
+		private static bool s_Disabled;
+		private static #SCRIPTNAME# s_Instance;
+		public static #SCRIPTNAME# Instance {
+			get {
+				// Already disabled.
+				if (s_Disabled) {
+					return null;
+				}
+
+				if (s_Instance != null){
+					return s_Instance;
+				}
+
+				// From scene.
+				s_Instance = FindObjectOfType<#SCRIPTNAME#>();
+				if (s_Instance != null){
+					return s_Instance;
+				}
+
+				return CreateInstance();
+			}
+			set { s_Instance = value; }
+		}
+
+		private static #SCRIPTNAME# CreateInstance() {
+			// Create one.
+			GameObject newGameObject = new GameObject("#SCRIPTNAME#");
+			s_Instance = newGameObject.AddComponent<#SCRIPTNAME#>();
+			// From resource folder.
+			//s_Instance = Resources.Load<#SCRIPTNAME#>("Prefabs/#SCRIPTNAME#");
+
+			return s_Instance;
+		}
+		#endregion
+
+        #region Unity Methods
+        // Initialize my components.
+        void Awake() {
+            if (Instance != this) {
+				Destroy(this.gameObject);
+				return;
+			}
+			// The instance isn't destroyed.
+			//DontDestroyOnLoad(this.gameObject);
+
+        }
+
+        // Initialize my connections to others.
+        void Start() {
+            #NOTRIM#
+        }
+
+        // Update is called once per frame
+        void Update() {
+            #NOTRIM#
+        }
+
+		// Disable is called when disabled or destory.
+		void OnDisable() {
+			s_Disabled = true;
+		}
+        #endregion
+        #NOTRIM#
+    }
+}

@@ -1,0 +1,96 @@
+# Treat everything not text if not specified
+# Avoid crlf messing up things like .asset and ProjectSettings (But we'd like to diff so we do not assign binary[-text -diff] tag)
+# You should never do line ending conversion on .asset, .asset could be CRLF(ProjectSettings) LF(Tile set config) or binary even if forced text(Lighting and Terrain Data)
+* -text
+
+# Unity visible meta is LF regardless of created platform
+*.meta eol=lf
+
+# All extensions are specified in lower cases
+# [git config core.ignorecase true] is assumed.
+# The projects are going to be developed across OSX and Windows, if we allow OSX user to commit file names only differ in capitalization.
+# These files will prevent Windows users to pull
+
+
+# Human authored code
+# Files with auto crlf conversion, auto crlf is painful to get right
+# But we need it to avoid committing files with all line endings changed by text editor
+# Such commit will cripple [git blame]
+*.cs         text=auto
+*.json       text=auto
+
+# ShaderLab
+*.cginc      text=auto
+*.shader     text=auto
+
+# Gradle property
+*.properties text=auto
+
+# AndroidManifest and other XML files
+*.xml        text=auto
+
+# iOS plugin possible extensions
+*.h          text=auto
+*.c          text=auto
+*.cpp        text=auto
+*.m          eol=lf
+*.mm         eol=lf
+
+# NeXTSTEP property list
+*.plist      eol=lf
+
+
+# LFS
+# We intentionally NOT LFS tracking .prefab and .unity(Unity scene) in order to diff
+# We also intentionally not assign YAMLMerge as diff and merge to them, it does not work
+
+
+
+# Texture
+*.png  filter=lfs diff=lfs merge=lfs
+*.jpg  filter=lfs diff=lfs merge=lfs
+*.jpeg filter=lfs diff=lfs merge=lfs
+# Commiting PSD to Unity is not recommended (long import time)
+*.psd  filter=lfs diff=lfs merge=lfs 
+*.tga  filter=lfs diff=lfs merge=lfs
+*.tif  filter=lfs diff=lfs merge=lfs
+*.exr  filter=lfs diff=lfs merge=lfs
+*.gif  filter=lfs diff=lfs merge=lfs
+
+# Audio
+*.mp3 filter=lfs diff=lfs merge=lfs
+*.wav filter=lfs diff=lfs merge=lfs
+*.ogg filter=lfs diff=lfs merge=lfs
+
+# Model
+*.max filter=lfs diff=lfs merge=lfs
+*.fbx filter=lfs diff=lfs merge=lfs
+
+# Animation
+# Spine animation binary export
+*.skel.bytes filter=lfs diff=lfs merge=lfs
+# Unity animation is serialized as text under Force Text but unreadable
+*.anim       filter=lfs diff=lfs merge=lfs
+
+# Movie
+*.mp4 filter=lfs diff=lfs merge=lfs
+*.mov filter=lfs diff=lfs merge=lfs
+
+# Library
+*.dll filter=lfs diff=lfs merge=lfs
+*.aar filter=lfs diff=lfs merge=lfs
+*.jar filter=lfs diff=lfs merge=lfs
+*.so  filter=lfs diff=lfs merge=lfs
+*.a   filter=lfs diff=lfs merge=lfs
+
+# Executable
+*.exe filter=lfs diff=lfs merge=lfs
+
+# Font
+*.ttf filter=lfs diff=lfs merge=lfs
+*.otf filter=lfs diff=lfs merge=lfs
+
+# Misc, consider remove them from repository
+*.pdf          filter=lfs diff=lfs merge=lfs
+*.zip          filter=lfs diff=lfs merge=lfs
+*.unitypackage filter=lfs diff=lfs merge=lfs

@@ -1,0 +1,19 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+namespace #NAMESPACE# {
+	[CustomEditor(typeof(#SCRIPTNAME_WITHOUT_EDITOR#))]
+    public class #SCRIPTNAME# : Sirenix.OdinInspector.Editor.OdinEditor {
+		// OnEnable is called when you focus on this inspector.
+		protected override void OnEnable() {
+			base.OnEnable();
+		}
+
+		// OnInspectorGUI is called once per inspector update.
+		public override void OnInspectorGUI() {
+			base.OnInspectorGUI();
+		}
+    }
+}

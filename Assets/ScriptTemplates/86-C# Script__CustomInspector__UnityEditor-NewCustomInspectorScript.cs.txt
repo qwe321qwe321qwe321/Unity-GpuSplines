@@ -1,0 +1,19 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+namespace #NAMESPACE# {
+	[CustomEditor(typeof(#SCRIPTNAME_WITHOUT_EDITOR#))]
+    public class #SCRIPTNAME# : UnityEditor.Editor {
+		// OnEnable is called when you focus on this inspector.
+		protected void OnEnable() {
+			#NOTRIM#
+		}
+
+		// OnInspectorGUI is called once per inspector update.
+		public override void OnInspectorGUI() {
+			base.OnInspectorGUI();
+		}
+    }
+}
