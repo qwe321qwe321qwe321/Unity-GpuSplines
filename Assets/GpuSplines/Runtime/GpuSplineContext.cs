@@ -16,22 +16,12 @@ namespace PeDev.GpuSplines {
 		
 		public enum DrawMode {
 			DrawMesh,
-			DrawProcedural,
-			MeshRenderer
+			DrawProcedural
 		}
 
-		private DrawMode m_DrawMode;
-
-		public void SetDrawMode(DrawMode drawMode) {
-			if (m_DrawMode == drawMode) {
-				return;
-			}
-			m_DrawMode = drawMode;
-			foreach (var batch in m_SplineBatches) {
-				batch.dirtyMesh = true;
-				batch.dirtyMaterial = true;
-			}
-		}
+		private DrawMode m_DrawMode = DrawMode.DrawMesh;
+		private bool m_OptimizeLinearVertices = false;
+		
 
 		private int m_Count = 0;
 		private int m_Capacity = InitialCapacity;
@@ -46,7 +36,43 @@ namespace PeDev.GpuSplines {
 		
 		
 		internal IReadOnlyList<SplineBatch> GetSplineBatches() => m_SplineBatches.AsReadOnly();
+		
+		/// <summary>
+		/// Set the mode to draw.
+		/// </summary>
+		/// <param name="drawMode"></param>
+		public GpuSplineContext SetDrawMode(DrawMode drawMode) {
+			if (m_DrawMode == drawMode) {
+				return this;
+			}
 
+			if (drawMode == DrawMode.DrawProcedural && 
+			    !SystemInfo.supportsComputeShaders) {
+				// DrawProcedural needs to support compute buffer. 
+				drawMode = DrawMode.DrawMesh;
+				return SetDrawMode(drawMode);
+			}
+			
+			m_DrawMode = drawMode;
+			foreach (var batch in m_SplineBatches) {
+				batch.dirtyMesh = true;
+				batch.dirtyMaterial = true;
+			}
+
+			return this;
+		}
+
+		/// <summary>
+		/// If true, the splines with SplineType.Linear type will be optimized to 2 vertices per segment when it added.
+		/// The existed splines won't change.
+		/// </summary>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		public GpuSplineContext SetOptimizeLinearVertices(bool value) {
+			m_OptimizeLinearVertices = value;
+			return this;
+		}
+		
 		public SplineComponent GetComponent(SplineEntity entity) {
 			return m_Components[entity.id];
 		}
@@ -86,6 +112,11 @@ namespace PeDev.GpuSplines {
 			numControlPoints = Mathf.Min(controlPoints.Length, numControlPoints);
 			numVerticesPerSegment = Mathf.Max(numVerticesPerSegment, MinimumVerticesPerSegment);
 
+			// Optimize the linear vertices.
+			if (m_OptimizeLinearVertices && splineType == SplineType.Linear) {
+				numVerticesPerSegment = MinimumVerticesPerSegment;
+			}
+
 			SplineEntity entity = AddSplineEntityComponent(numVerticesPerSegment);
 			// Set up the batch.
 			int actualNumControlPoints = insertFirstLastPoints ? numControlPoints + 2 : numControlPoints;
@@ -103,6 +134,11 @@ namespace PeDev.GpuSplines {
 			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
 			int numControlPoints = controlPoints.Count;
 			numVerticesPerSegment = Mathf.Max(numVerticesPerSegment, MinimumVerticesPerSegment);
+			
+			// Optimize the linear vertices.
+			if (m_OptimizeLinearVertices && splineType == SplineType.Linear) {
+				numVerticesPerSegment = MinimumVerticesPerSegment;
+			}
 
 			SplineEntity entity = AddSplineEntityComponent(numVerticesPerSegment);
 			// Set up the batch.
@@ -258,10 +294,23 @@ namespace PeDev.GpuSplines {
 
 			batch.dirtyControlPoints = true;
 		}
+
+		/// <summary>
+		/// Modify the number of vertices per segment in the specific spline.
+		/// </summary>
 		public void ModifyVerticesPerSegment(SplineEntity entity, int value) {
 			value = Mathf.Max(value, MinimumVerticesPerSegment);
-
 			
+			// Optimize linear vertices.
+			if (m_OptimizeLinearVertices && 
+			    GetBatch(entity).batchProperties.splineType == SplineType.Linear) {
+				value = MinimumVerticesPerSegment;
+			}
+
+			ModifyVerticesPerSegmentInternal(entity, value);
+		}
+		
+		private void ModifyVerticesPerSegmentInternal(SplineEntity entity, int value) {
 			ref SplineComponent comp = ref m_Components[entity.id];
 			if (comp.numVerticesPerSegment == value) {
 				return;
@@ -317,11 +366,51 @@ namespace PeDev.GpuSplines {
 			SplineBatchKey prop = GetBatch(entity).batchProperties;
 			prop.splineType = splineType;
 			ModifyProperties(entity, prop);
+			
+			// Optimize linear vertices.
+			if (m_OptimizeLinearVertices && splineType == SplineType.Linear) {
+				// After prop changes, do segment changes.
+				if (m_Components[entity.id].numVerticesPerSegment != MinimumVerticesPerSegment) {
+					ModifyVerticesPerSegmentInternal(entity, MinimumVerticesPerSegment);
+				}
+			}
+		}
+		
+		public void ModifySplineType(SplineEntity entity, SplineType splineType, int numVerticesPerSegment) {
+			SplineBatchKey prop = GetBatch(entity).batchProperties;
+			prop.splineType = splineType;
+			ModifyProperties(entity, prop, numVerticesPerSegment);
 		}
 		
 		public void ModifyProperties(SplineEntity entity, float width, Color color, SplineType splineType) {
 			SplineBatchKey prop = new SplineBatchKey() { width = width, color = color, splineType = splineType };
 			ModifyProperties(entity, prop);
+			
+			// Optimize linear vertices.
+			if (m_OptimizeLinearVertices && splineType == SplineType.Linear) {
+				// After prop changes, do segment changes.
+				if (m_Components[entity.id].numVerticesPerSegment != MinimumVerticesPerSegment) {
+					ModifyVerticesPerSegmentInternal(entity, MinimumVerticesPerSegment);
+				}
+			}
+		}
+		public void ModifyProperties(SplineEntity entity, float width, Color color, SplineType splineType, int numVerticesPerSegment) {
+			SplineBatchKey prop = new SplineBatchKey() { width = width, color = color, splineType = splineType };
+			ModifyProperties(entity, prop, numVerticesPerSegment);
+		}
+
+		private void ModifyProperties(SplineEntity entity, SplineBatchKey prop, int numVerticesPerSegment) {
+			ModifyProperties(entity, prop);
+			
+			// Optimize linear vertices.
+			if (m_OptimizeLinearVertices && prop.splineType == SplineType.Linear) {
+				numVerticesPerSegment = MinimumVerticesPerSegment;
+			}
+			
+			// After prop changes, do segment changes.
+			if (m_Components[entity.id].numVerticesPerSegment != numVerticesPerSegment) {
+				ModifyVerticesPerSegmentInternal(entity, numVerticesPerSegment);
+			}
 		}
 
 		private void ModifyProperties(SplineEntity entity, SplineBatchKey prop) {
@@ -331,21 +420,22 @@ namespace PeDev.GpuSplines {
 				return;
 			}
 
-			// Fast way: just modify the belong batch.
+			
 			if (batch.splineCount == 1) {
+				// Fast path: just modify the belong batch.
 				batch.dirtyWidthColor = true;
 				if (batch.batchProperties.splineType != prop.splineType) {
 					batch.dirtyMaterial = true;
 				}
 				batch.batchProperties = prop;
-				return;
+			} else {
+				// Slow path:
+				// Move to another batch.
+                SplineBatch newBatch = GetBatchOrCreateOne(prop,
+                	m_Components[entity.id].numControlPoints,
+                	m_Components[entity.id].numVertices);
+                MoveSplineToBatch(newBatch, entity);
 			}
-
-			// Move to another batch.
-			SplineBatch newBatch = GetBatchOrCreateOne(prop,
-				m_Components[entity.id].numControlPoints,
-				m_Components[entity.id].numVertices);
-			MoveSplineToBatch(newBatch, entity);
 		}
 
 		#endregion
@@ -356,7 +446,7 @@ namespace PeDev.GpuSplines {
 			for (int i = 0; i < m_ActiveSplineCount; i++) {
 				SplineBatch batch = m_SplineBatches[i];
 				if (batch.IsEmpty()) {
-					Debug.LogWarning("Weird.");
+					Debug.LogWarning($"Weird behaviour: The batch should not be empty if it is active. {i}/{m_ActiveSplineCount}");
 					continue;
 				}
 				
@@ -410,15 +500,13 @@ namespace PeDev.GpuSplines {
 						Profiler.EndSample();
 					}
 						break;
-					case DrawMode.MeshRenderer:
-						break;
 				}
 			}
 		}
 		
 		private void GenerateMesh(SplineBatch batch) {
 			batch.dirtyMesh = false;
-			if (m_DrawMode == DrawMode.DrawMesh || m_DrawMode == DrawMode.MeshRenderer) {
+			if (m_DrawMode == DrawMode.DrawMesh) {
 				if (batch.mesh == null) {
 					batch.mesh = new Mesh();
 					batch.mesh.name = "Spline Batch";

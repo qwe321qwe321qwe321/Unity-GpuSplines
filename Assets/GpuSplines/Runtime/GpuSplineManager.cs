@@ -25,13 +25,15 @@ namespace PeDev.GpuSplines {
 		#endregion
 
 		public GpuSplineContext.DrawMode renderMode;
+		public bool optimizeLinearVertices;
 		public bool drawControlPointsInGizmos = false;
 		public bool drawBoundsInGizmos = false;
 		public GpuSplineContext Context { get; } = new GpuSplineContext();
 
 		private void Update() {
-			Context.SetDrawMode(renderMode);
-			Context.Update();
+			Context.SetDrawMode(renderMode)
+				.SetOptimizeLinearVertices(optimizeLinearVertices)
+				.Update();
 		}
 
 		private void OnDestroy() {

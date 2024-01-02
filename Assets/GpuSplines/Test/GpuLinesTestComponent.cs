@@ -50,6 +50,9 @@ namespace PeDev.GpuSplines {
 		private void Update() {
 			if (createSplines) {
 				for (int i = 0; i < createNum; i++) {
+					int lineTypeNum = Random.Range(0, 2);
+					SplineType splineType = (SplineType)lineTypeNum;
+					
 					Profiler.BeginSample("SplineManager.AddSpline");
 					var newOne = m_Context.AddSpline(
 						points, points.Length, true, 
@@ -127,7 +130,7 @@ namespace PeDev.GpuSplines {
 
 					if (randomModifyWidth) {
 						float width = Random.Range(0.1f, 2f);
-						Profiler.BeginSample("SplineManager.ModifyColor");
+						Profiler.BeginSample("SplineManager.ModifyWidth");
 						m_Context.ModifyWidth(entity, width);
 						Profiler.EndSample();
 					}
