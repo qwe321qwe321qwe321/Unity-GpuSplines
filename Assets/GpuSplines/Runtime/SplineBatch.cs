@@ -22,7 +22,14 @@ namespace PeDev.GpuSplines {
 
 		private SharedArray<Vector4, float4> m_SharedControlPoints =
 			new SharedArray<Vector4, float4>(MAX_NUM_CONTROL_POINTS);
+		
+		/// <summary>
+		/// The Array of Control Points.
+		/// xyz: control point position
+		/// w = the width of control point.
+		/// </summary>
 		public Vector4[] controlPoints => m_SharedControlPoints;
+		
 		public NativeArray<float4> controlPointsNativeArray => m_SharedControlPoints;
 		
 		private SharedArray<SplineEntity> m_SharedSplineEntities = new SharedArray<SplineEntity>(4);
@@ -40,7 +47,7 @@ namespace PeDev.GpuSplines {
 		public MaterialPropertyBlock materialProperty = new MaterialPropertyBlock();
 		public bool dirtyControlPoints = false;
 		
-		public bool dirtyWidthColor = false;
+		public bool dirtyColor = false;
 
 		public Material sharedMaterial;
 		public bool dirtyMaterial = false;
@@ -76,7 +83,7 @@ namespace PeDev.GpuSplines {
 		internal void SetAllDirty() {
 			dirtyMesh = true;
 			dirtyControlPoints = true;
-			dirtyWidthColor = true;
+			dirtyColor = true;
 			dirtyMaterial = true;
 			dirtyBounds = true;
 		}
@@ -96,12 +103,11 @@ namespace PeDev.GpuSplines {
 			dirtyBounds = true;
 		}
 		
-		internal void UpdateWidthColor() {
-			dirtyWidthColor = false;
+		internal void UpdateColor() {
+			dirtyColor = false;
 			
 			Vector4 value = batchProperties.color;
-			value.w = batchProperties.width;
-			materialProperty.SetVector(ShaderIDs._ColorAndWidth, value);
+			materialProperty.SetVector(ShaderIDs._LineColor, value);
 
 			// Need to update bounds if width is dirty.
 			UpdateMeshBounds();
@@ -123,7 +129,6 @@ namespace PeDev.GpuSplines {
 				// for curve. 
 				meshBounds.extents *= 1.25f;
 			}
-			meshBounds.Expand(batchProperties.width * 2);
 		}
 
 		internal void Dispose() {
@@ -145,11 +150,10 @@ namespace PeDev.GpuSplines {
 	}
 	
 	struct SplineBatchKey : IEquatable<SplineBatchKey> {
-		public float width;
 		public Color color;
 		public SplineType splineType;
 
-		public bool Equals(SplineBatchKey other) => width.Equals(other.width) && color.Equals(other.color) && splineType == other.splineType;
+		public bool Equals(SplineBatchKey other) => color.Equals(other.color) && splineType == other.splineType;
 
 		public override bool Equals(object obj) => obj is SplineBatchKey other && Equals(other);
 
@@ -157,8 +161,7 @@ namespace PeDev.GpuSplines {
 		{
 			unchecked
 			{
-				var hashCode = width.GetHashCode();
-				hashCode = (hashCode * 397) ^ color.GetHashCode();
+				var hashCode = color.GetHashCode();
 				hashCode = (hashCode * 397) ^ (int)splineType;
 				return hashCode;
 			}

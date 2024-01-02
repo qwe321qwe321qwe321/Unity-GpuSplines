@@ -155,6 +155,11 @@ namespace PeDev.GpuSplines {
 		}
 	}
 	
+	/// <summary>
+	/// Calculate the bounds of the spline by control points.
+	/// result[0] = minPos, [1] = maxPos
+	/// 
+	/// </summary>
 	[BurstCompile]
 	internal struct CalculateBoundJob : IJob
 	{
@@ -164,11 +169,11 @@ namespace PeDev.GpuSplines {
 
 		public int splineCount;
 
-		[WriteOnly] public NativeArray<Vector3> result;
+		[WriteOnly] public NativeArray<Vector4> result;
 
 		public void Execute() {
-			float3 minPos = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-			float3 maxPos = new float3(float.MinValue, float.MinValue, float.MinValue);
+			float4 minPos = new float4(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue);
+			float4 maxPos = new float4(float.MinValue, float.MinValue, float.MinValue, float.MinValue);
 			
 			for (int i = 0; i < splineCount; i++) {
 				var entity = splineIndices[i];
@@ -191,6 +196,11 @@ namespace PeDev.GpuSplines {
 						minPos.z = pos.z;
 					if (pos.z > maxPos.z)
 						maxPos.z = pos.z;
+					
+					if (pos.w < minPos.w)
+						minPos.w = pos.w;
+					if (pos.w > maxPos.w)
+						maxPos.w = pos.w;
 				}
 			}
 			

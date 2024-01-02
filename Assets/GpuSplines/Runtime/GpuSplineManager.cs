@@ -30,6 +30,11 @@ namespace PeDev.GpuSplines {
 		public bool drawBoundsInGizmos = false;
 		public GpuSplineContext Context { get; } = new GpuSplineContext();
 
+		private void Awake() {
+			Context.SetDrawMode(renderMode)
+				.SetOptimizeLinearVertices(optimizeLinearVertices);
+		}
+
 		private void Update() {
 			Context.SetDrawMode(renderMode)
 				.SetOptimizeLinearVertices(optimizeLinearVertices)

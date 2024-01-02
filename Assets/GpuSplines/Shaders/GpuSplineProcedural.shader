@@ -10,7 +10,6 @@
         {
             "RenderType"="Opaque"
         }
-        LOD 200
 
         Cull Off
         Lighting Off
@@ -22,7 +21,7 @@
 
         Pass
         {
-            CGPROGRAM
+            HLSLPROGRAM
             //#define DEBUG_DRAW
 
             // The device needs to support ComputeBuffer.
@@ -33,6 +32,7 @@
             #pragma multi_compile_local LINEAR CATMULLROM
 
             #include "UnityCG.cginc"
+            #include "GpuSplineLib.hlsl"
 
             struct v2f
             {
@@ -53,9 +53,7 @@
             StructuredBuffer<Segment> _SegmentBuffer;
 
             sampler2D _MainTex;
-            float4 _ControlPoints[1000];
-            // xyz = color, w = width
-            half4 _ColorAndWidth;
+            half4 _LineColor;
 
             #ifdef DEBUG_DRAW
             static const float3 _tempPos[6] = {
@@ -87,59 +85,41 @@
                  float3 pos = _tempPos[v_idx] + float3(1, 0, 0) * seg_idx;
                  //pos = _tempPos[vid];
                  v.positionCS = UnityObjectToClipPos(pos.xyz);
-                 float leftOrRightVertex = vertex_leftOrRight[v_idx];
-                 v.uv = float2(segment.tex_v, 0);
+                 const float leftOrRight = vertex_leftOrRight[v_idx];
+                 const float t = segment.data.x;
+                 const float tex_v = segment.data.y;
+                 v.uv = float2(tex_v, 0);
                  return v;
 #else
 
-                uint cp_idx = segment.index;
-                float t = segment.data.x;
-                float tex_v = segment.data.y;
+                const uint cp0_index = segment.index;
+                const float t = segment.data.x;
+                const float tex_v = segment.data.y;
                 // left = 0, right = 1
-                float leftOrRightVertex = vertex_leftOrRight[v_idx];
+                const float leftOrRight = vertex_leftOrRight[v_idx];
                 
-                float3 cp0 = _ControlPoints[cp_idx].xyz;
-                float3 cp1 = _ControlPoints[cp_idx +1].xyz;
-                float3 cp2 = _ControlPoints[cp_idx +2].xyz;
-                float3 cp3 = _ControlPoints[cp_idx +3].xyz;
-                
-                #if CATMULLROM
-                float3 base0 = -cp0 + cp3 + (cp1 - cp2) * 3;
-                float3 base1 = 2*cp0 - 5*cp1 + 4*cp2 - cp3;
-                
-                float3 pos = 0.5 * (base0 * (t*t*t) + base1 * (t*t) + (-cp0+cp2)*t + 2 * cp1);
-                float3 tang = base0 * (t * t * 1.5) + base1 * t + 0.5 * (cp2 - cp0);
-                #else
-                // LINEAR
-                float3 pos = lerp(cp1, cp2, t);
-                float3 tang = cp2 - cp1;
-                #endif
-                
-                // extend half width.
-                tang = normalize(tang) * _ColorAndWidth.w * 0.5;
-                
-                pos = pos + lerp(float3(-tang.y, tang.x, 0), float3(tang.y, -tang.x, 0), leftOrRightVertex);
+                float3 pos = ComputeSplineVertex(cp0_index, t, leftOrRight);
                 
                 v2f o;
                 o.positionCS = UnityObjectToClipPos(pos.xyz);
-                o.uv = float2(leftOrRightVertex, tex_v);
+                o.uv = float2(leftOrRight, tex_v);
                 return o;
 #endif
             }
 
-            fixed4 frag(v2f i) : SV_Target
+            half4 frag(v2f i) : SV_Target
             {
                 #ifdef DEBUG_DRAW
-                fixed4 col = fixed4(i.uv.x, i.uv.y, 1, 1);
+                half4 col = half4(i.uv.x, i.uv.y, 1, 1);
                 #else
 
                 // sample the texture
-                fixed4 col = tex2D(_MainTex, i.uv);
-                col.rgb *= _ColorAndWidth.rgb;
+                half4 col = tex2D(_MainTex, i.uv);
+                col.rgb *= _LineColor.rgb;
                 #endif
                 return col;
             }
-            ENDCG
+            ENDHLSL
         }
     }
 }
