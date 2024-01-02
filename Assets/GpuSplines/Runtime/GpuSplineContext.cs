@@ -11,9 +11,9 @@ using UnityEngine.Rendering;
 
 namespace PeDev.GpuSplines {
 	public class GpuSplineContext {
-		private const int InitialCapacity = 16;
 		private const int MinimumVerticesPerSegment = 2;
-		
+		private const int MinCapacity = 16;
+
 		public enum DrawMode {
 			DrawMesh,
 			DrawProcedural
@@ -24,12 +24,12 @@ namespace PeDev.GpuSplines {
 		
 
 		private int m_Count = 0;
-		private int m_Capacity = InitialCapacity;
+		private int m_Capacity = 0;
 
-		private SharedArray<SplineEntity> m_SharedEntities = new SharedArray<SplineEntity>(InitialCapacity);
+		private SharedArray<SplineEntity> m_SharedEntities = new SharedArray<SplineEntity>(0);
 		private SplineEntity[] m_Entities => m_SharedEntities;
 		
-		private SharedArray<SplineComponent> m_SharedComponents = new SharedArray<SplineComponent>(InitialCapacity);
+		private SharedArray<SplineComponent> m_SharedComponents = new SharedArray<SplineComponent>(0);
 		private SplineComponent[] m_Components => m_SharedComponents;
 		private readonly List<SplineBatch> m_SplineBatches = new List<SplineBatch>();
 		private int m_ActiveSplineCount = 0;
@@ -157,15 +157,16 @@ namespace PeDev.GpuSplines {
 		/// Add a new entity and component into the ECS arrays internally.
 		/// </summary>
 		private SplineEntity AddSplineEntityComponent(int numVerticesPerSegment) {
-			if (m_Count == m_Capacity) {
+			if (m_Count >= m_Capacity) {
 				SetCapacity(m_Capacity * 2);
 			}
 
-			SplineEntity entity = new SplineEntity() { id = m_Count };
-			m_Entities[m_Count] = entity;
-
-			m_Components[m_Count] = new SplineComponent() { numVerticesPerSegment = numVerticesPerSegment, };
+			// Take a new entity.
+			SplineEntity entity = m_Entities[m_Count];
 			m_Count++;
+
+			// Clear the old data.
+			m_Components[entity.id] = new SplineComponent() { numVerticesPerSegment = numVerticesPerSegment, };
 
 			return entity;
 		}
@@ -176,17 +177,23 @@ namespace PeDev.GpuSplines {
 		/// <param name="entity"></param>
 		/// <returns></returns>
 		public bool RemoveSpline(SplineEntity entity) {
-			SplineComponent component = m_Components[entity.id];
 			if (!RemoveSplineInBatch(GetBatch(entity), entity)) {
 				return false;
 			}
 
-			// Remove swap back in ECS.
-			int removeIndex = entity.id;
-			int last = m_Count - 1;
-			m_Components[removeIndex] = m_Components[last];
-			m_Entities[removeIndex] = m_Entities[last];
-			m_Entities[removeIndex].id = removeIndex;
+			
+			// Remove swap back in m_Entities list.
+			// We don't move m_Component list to make the entity link to their location.
+			int removeIndex = m_Components[entity.id].indexEntity;
+			int lastIndex = m_Count - 1;
+			SplineEntity lastEntity = m_Entities[lastIndex];
+			// Swap the last entity to the removeIndex location.
+			m_Entities[removeIndex] = lastEntity;
+			m_Entities[lastIndex] = entity;
+			// Remember to update its indexEntity.
+			m_Components[lastEntity.id].indexEntity = removeIndex;
+			m_Components[entity.id].indexEntity = lastIndex;
+			
 			m_Count -= 1;
 			return true;
 		}
@@ -830,10 +837,21 @@ namespace PeDev.GpuSplines {
 
 		#endregion
 
-		private void SetCapacity(int value) {
-			m_SharedEntities.Resize(value);
-			m_SharedComponents.Resize(value);
-			m_Capacity = value;
+		private void SetCapacity(int newCapacity) {
+			newCapacity = Mathf.Max(newCapacity, MinCapacity);
+			if (newCapacity <= m_Capacity) {
+				return;
+			}
+			
+			m_SharedEntities.Resize(newCapacity);
+			m_SharedComponents.Resize(newCapacity);
+
+			// Allocate new entity ids.
+			for (int i = m_Capacity; i < newCapacity; i++) {
+				m_Entities[i] = new SplineEntity() { id = i };
+			}
+			m_Capacity = newCapacity;
+
 		}
 	}
 
