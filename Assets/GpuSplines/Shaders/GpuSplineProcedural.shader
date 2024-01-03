@@ -8,6 +8,7 @@
     {
         Tags
         {
+            "IgnoreProjector" = "True"
             "RenderType"="Opaque"
         }
 

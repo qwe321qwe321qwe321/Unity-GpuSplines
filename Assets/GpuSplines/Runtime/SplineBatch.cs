@@ -11,6 +11,7 @@ namespace PeDev.GpuSplines {
 	class SplineBatch {
 		public const int MAX_NUM_VERTICES = 65000;
 		public const int MAX_NUM_CONTROL_POINTS = 1000;
+		public const int MIN_NUM_CONTROL_POINTS = 4;
 
 		public bool IsEmpty() {
 			return numControlPoints == 0;

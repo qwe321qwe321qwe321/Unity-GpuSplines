@@ -3,33 +3,37 @@
 		/// <summary>
 		/// The index of the component in the ECS array.
 		/// </summary>
-		internal int id;
+		public readonly int id;
+
+		internal SplineEntity(int id) {
+			this.id = id;
+		}
 	};
 
 	public struct SplineComponent {
 		/// <summary>
 		/// The index of the entity in the ECS array.
 		/// </summary>
-		internal int indexEntity;
-		
+		public int indexEntity { get; internal set; }
+
 		/// <summary>
 		/// The index of the SplineBatch list.
 		/// </summary>
-		internal int indexBatch;
+		public int indexBatch { get; internal set; }
 		
 		/// <summary>
 		/// The index of the spline list inside the SplineBatch.
 		/// </summary>
-		internal int indexInBatchSplines;
+		public int indexInBatchSplines { get; internal set; }
 		
 		
-		internal int startIndexControlPoint;
-		internal int endIndexControlPoint => startIndexControlPoint + numControlPoints;
-		internal int numControlPoints;
+		public int startIndexControlPoint { get; internal set; }
+		public int endIndexControlPoint => startIndexControlPoint + numControlPoints;
+		public int numControlPoints { get; internal set; }
 
-		internal int startIndexVertices;
-		internal int numVerticesPerSegment;
-		internal int numVertices => GetNumVertices(this.numControlPoints, this.numVerticesPerSegment);
+		public int startIndexVertices { get; internal set; }
+		public int numVerticesPerSegment { get; internal set; }
+		public int numVertices => GetNumVertices(this.numControlPoints, this.numVerticesPerSegment);
 
 		public static int GetNumVertices(int numControlPoints, int numVerticesPerSegment) {
 			return (numControlPoints - 3) * numVerticesPerSegment;

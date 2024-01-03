@@ -46,7 +46,7 @@ namespace PeDev.GpuSplines {
 		}
 
 
-		private void OnDrawGizmosSelected() {
+		private void OnDrawGizmos() {
 			if (drawControlPointsInGizmos) {
 				foreach (var batch in Context.GetSplineBatches()) {
 					Gizmos.color = Color.yellow;
