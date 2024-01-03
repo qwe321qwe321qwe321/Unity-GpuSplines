@@ -358,12 +358,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef1b839b8a789914a83e462e5ef439a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  createPrimitive: 1
-  initialRadius: 10
-  objectCount: 10
-  randomMove: 0
+  createPrimitive: 0
+  initialRadius: 100
+  objectCount: 10000
+  randomMove: 1
   moveSpeed: 5
-  splineCount: 1
+  splineCount: 1000
   splineWidthRandomMin: 0.1
   splineWidthRandomMax: 0.5
 --- !u!4 &1701989531
