@@ -365,7 +365,8 @@ MonoBehaviour:
   moveSpeed: 5
   splineCount: 1000
   splineWidthRandomMin: 0.1
-  splineWidthRandomMax: 0.5
+  splineWidthRandomMax: 1
+  useInput2: 0
 --- !u!4 &1701989531
 Transform:
   m_ObjectHideFlags: 0

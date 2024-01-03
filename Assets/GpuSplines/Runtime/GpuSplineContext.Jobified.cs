@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.Jobs;
 
 namespace PeDev.GpuSplines {
@@ -25,6 +26,14 @@ namespace PeDev.GpuSplines {
 
 			[BurstCompile]
 			public void ModifyPoints(SplineEntity entity, NativeArray<float3> controlPoints, int startReadIndex, int numControlPoints,
+				bool insertFirstLastPoints) {
+				unsafe {
+					ModifyPoints(entity, (float3*)controlPoints.GetUnsafeReadOnlyPtr(), startReadIndex, numControlPoints, insertFirstLastPoints);
+				}
+			}
+
+			[BurstCompile]
+			public unsafe void ModifyPoints(SplineEntity entity, float3* controlPoints, int startReadIndex, int numControlPoints,
 				bool insertFirstLastPoints) {
 				
 				int rawNumControlPoints = numControlPoints;
@@ -153,6 +162,19 @@ namespace PeDev.GpuSplines {
 			destination[index] = transform.position;
 		}
 	}
+	
+	[BurstCompile]
+	public struct CopyTransformPositionWithIndicesJob : IJobParallelForTransform {
+		[ReadOnly]
+		public NativeArray<int> indices;
+		
+		[NativeDisableParallelForRestriction]
+		public NativeArray<float3> destination;
+
+		public void Execute(int index, TransformAccess transform) {
+			destination[indices[index]] = transform.position;
+		}
+	}
 
 	public struct BatchSplineInput {
 		public SplineEntity entity;
@@ -161,7 +183,7 @@ namespace PeDev.GpuSplines {
 	}
 	    
 	[BurstCompile]
-	public struct UpdateSplineControlPointsJob : IJobParallelFor {
+	public struct ModifySplineControlPointsJob : IJobParallelFor {
 		[ReadOnly]
 		public NativeArray<BatchSplineInput> inputEntities;
 		[ReadOnly]
@@ -176,6 +198,69 @@ namespace PeDev.GpuSplines {
 			BatchSplineInput input = inputEntities[index];
 			SplineEntity entity = input.entity;
 			splineContext.ModifyPoints(entity, inputControlPoints, input.startIndex, input.numControlPoints, insertFirstLastPoints);
+		}
+	}
+	
+	public struct BatchSplineInput2 {
+		public SplineEntity entity;
+		public int numControlPoints;
+
+		// Pointer hack: to have nested native arrays.
+		// WARNING: You have to STORE the NativeArray in the other place.
+		// When you are gonna dispose it, just dispose the one you allocated instead of this.
+		public IntPtr inputControlPointsPtr;
+		public NativeArray<float3> inputControlPoints {
+			get {
+				unsafe {
+					// This line cannot be Burst compiled.
+					// You should use inputControlPointsPtr directly to leverage Burst best.
+					NativeArray<float3> nativeArray = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<float3>
+						(inputControlPointsPtr.ToPointer(), numControlPoints, Allocator.None);
+#if UNITY_EDITOR
+					NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref nativeArray, AtomicSafetyHandle.Create());
+#endif
+					return nativeArray;
+				}
+			}
+			set {
+				unsafe {
+					inputControlPointsPtr = (IntPtr)value.GetUnsafePtr(); 
+				}
+			}
+		}
+	}
+	
+	[BurstCompile]
+	public struct CopyTransformPositionToBatchSplineInput2Job : IJobParallelForTransform {
+		[ReadOnly]
+		public NativeArray<int> batchIndices;
+		[ReadOnly]
+		public NativeArray<int> controlPointIndices;
+		
+		[NativeDisableParallelForRestriction]
+		public NativeArray<BatchSplineInput2> destination;
+
+		public void Execute(int index, TransformAccess transform) {
+			unsafe {
+				((float3*)destination[batchIndices[index]].inputControlPointsPtr.ToPointer())[controlPointIndices[index]] = transform.position;
+			}
+		}
+	}
+	    
+	[BurstCompile]
+	public struct ModifySplineControlPointsJob2 : IJobParallelFor {
+		[ReadOnly]
+		public NativeArray<BatchSplineInput2> inputEntities;
+		    
+		public bool insertFirstLastPoints;
+		    
+		public GpuSplineContext.JobifiedContext splineContext;
+
+		    
+		public unsafe void Execute(int index) {
+			BatchSplineInput2 input = inputEntities[index];
+			SplineEntity entity = input.entity;
+			splineContext.ModifyPoints(entity, (float3*)input.inputControlPointsPtr.ToPointer(), 0, input.numControlPoints, insertFirstLastPoints);
 		}
 	}
 }

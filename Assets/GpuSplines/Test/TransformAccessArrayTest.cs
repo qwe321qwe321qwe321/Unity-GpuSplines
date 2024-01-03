@@ -28,8 +28,14 @@ namespace PeDev {
 	    private MoveUpdateJob m_MoveUpdateJob;
 	    private Random m_Random;
 
+	    public bool useInput2 = false;
 	    private NativeArray<BatchSplineInput> m_Splines;
 	    private SharedArray<Vector3, float3> m_SharedPositions;
+	    
+	    private NativeArray<BatchSplineInput2> m_Splines2;
+	    private NativeArray<float3>[] m_SplineControlPoints2;
+	    private NativeArray<int> m_IndexSplines;
+	    private NativeArray<int> m_IndexControlPoints;
 
 	    private GpuSplineContext m_Context => GpuSplineManager.Instance.Context;
 
@@ -60,7 +66,15 @@ namespace PeDev {
 
 
 		    m_Splines = new NativeArray<BatchSplineInput>(splineCount, Allocator.Persistent);
+		    
+		    m_Splines2 = new NativeArray<BatchSplineInput2>(splineCount, Allocator.Persistent);
+		    m_SplineControlPoints2 = new NativeArray<float3>[splineCount];
+
+		    m_IndexSplines = new NativeArray<int>(objectCount, Allocator.Persistent);
+		    m_IndexControlPoints = new NativeArray<int>(objectCount, Allocator.Persistent);
+		    
 		    int[] slots = GetSplitSlots(splineCount, objectCount, 2);
+		    
 		    int startIndex = 0;
 		    for (int i = 0; i < splineCount; i++) {
 			    int numControlPoints = Mathf.Clamp(slots[i], 2, 998);
@@ -69,8 +83,20 @@ namespace PeDev {
 				    positions, startIndex, 
 				    numControlPoints, true, 10, 
 				    UnityEngine.Random.Range(splineWidthRandomMin, splineWidthRandomMax), Color.yellow, SplineType.CatmullRom);
+
 			    m_Splines[i] = new BatchSplineInput() {
-				    entity = entity, startIndex = startIndex, numControlPoints = numControlPoints,
+				    entity = entity, startIndex = startIndex, numControlPoints = numControlPoints
+			    };
+			    
+			    m_SplineControlPoints2[i] = new NativeArray<float3>(numControlPoints, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+			    for (int j = 0; j < numControlPoints; j++) {
+				    m_SplineControlPoints2[i][j] = positions[startIndex + j];
+
+				    m_IndexSplines[startIndex + j] = i;
+				    m_IndexControlPoints[startIndex + j] = j;
+			    }
+			    m_Splines2[i] = new BatchSplineInput2() {
+				    entity = entity, inputControlPoints = m_SplineControlPoints2[i], numControlPoints = numControlPoints,
 			    };
 
 			    startIndex += numControlPoints;
@@ -103,7 +129,13 @@ namespace PeDev {
 
 	    private void OnDestroy() {
 		    m_Splines.Dispose();
+		    for (int i = 0; i < m_SplineControlPoints2.Length; i++) {
+			    m_SplineControlPoints2[i].Dispose();
+		    }
+		    m_Splines2.Dispose();
 		    m_TransformAccessArray.Dispose();
+		    m_IndexSplines.Dispose();
+		    m_IndexControlPoints.Dispose();
 	    }
 
 	    private void Update() {
@@ -121,19 +153,36 @@ namespace PeDev {
 			    }.Schedule(m_TransformAccessArray);
 		    }
 
-		    // Copy transform.position to m_SharedPositions.
-		    m_JobHandle = new CopyTransformPositionJob() {
-			    destination = m_SharedPositions
-		    }.Schedule(m_TransformAccessArray, m_JobHandle);
+		   
 
-		    // Jobified update spline control points.
 		    var splineContextJobified = m_Context.BeginJobifiedContext(Allocator.TempJob);
-		    m_JobHandle = new UpdateSplineControlPointsJob() {
-			    inputEntities = m_Splines,
-			    inputControlPoints = m_SharedPositions,
-			    insertFirstLastPoints = true,
-			    splineContext = splineContextJobified,
-		    }.Schedule(m_Splines.Length, 4, m_JobHandle);
+		    if (useInput2) {
+			    // Copy transform.position to m_SharedPositions.
+			    m_JobHandle = new CopyTransformPositionToBatchSplineInput2Job() {
+				    destination = m_Splines2,
+				    batchIndices = m_IndexSplines,
+				    controlPointIndices = m_IndexControlPoints
+			    }.Schedule(m_TransformAccessArray, m_JobHandle);
+			    // Jobified update spline control points.
+			    m_JobHandle = new ModifySplineControlPointsJob2() {
+				    inputEntities = m_Splines2,
+				    insertFirstLastPoints = true,
+				    splineContext = splineContextJobified,
+			    }.Schedule(m_Splines.Length, 4, m_JobHandle);
+		    } else {
+			    // Copy transform.position to m_SharedPositions.
+			    m_JobHandle = new CopyTransformPositionJob() {
+				    destination = m_SharedPositions
+			    }.Schedule(m_TransformAccessArray, m_JobHandle);
+			    // Jobified update spline control points.
+			    m_JobHandle = new ModifySplineControlPointsJob() {
+				    inputEntities = m_Splines,
+				    inputControlPoints = m_SharedPositions,
+				    insertFirstLastPoints = true,
+				    splineContext = splineContextJobified,
+			    }.Schedule(m_Splines.Length, 4, m_JobHandle);
+		    }
+		   
 		    Profiler.EndSample();
 
 		    m_JobHandle.Complete();
