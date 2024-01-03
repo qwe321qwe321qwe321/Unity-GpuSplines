@@ -110,18 +110,28 @@ namespace PeDev.GpuSplines {
 		}
 
 		#region Add/Remove Splines
-
-		public SplineEntity AddSpline(Vector3[] inputControlPoints, bool insertFirstLastPoints, int numVerticesPerSegment, float width, Color color, SplineType splineType) {
-			return AddSpline(inputControlPoints, 0, inputControlPoints.Length, 
+		public SplineEntity AddSpline(Vector3[] inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints, int numVerticesPerSegment, float width, Color color, SplineType splineType) {
+			return AddSplineGeneric(inputControlPoints, inputStartIndex, inputNumControlPoints, 
 				insertFirstLastPoints, numVerticesPerSegment, width, color, splineType);
 		}
 		
 		public SplineEntity AddSpline(Vector3[] inputControlPoints, int inputNumControlPoints, bool insertFirstLastPoints, int numVerticesPerSegment, float width, Color color, SplineType splineType) {
-			return AddSpline(inputControlPoints, 0, inputNumControlPoints, 
+			return AddSplineGeneric(inputControlPoints, 0, inputNumControlPoints, 
 				insertFirstLastPoints, numVerticesPerSegment, width, color, splineType);
 		}
+
+		public SplineEntity AddSpline(List<Vector3> inputControlPoints, bool insertFirstLastPoints,
+			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
+			return AddSplineGeneric(inputControlPoints, 0, inputControlPoints.Count, insertFirstLastPoints, numVerticesPerSegment, width, color, splineType);
+		}
+
+		public SplineEntity AddSpline(List<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints,
+			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
+			return AddSplineGeneric(inputControlPoints, inputStartIndex, inputControlPoints.Count, insertFirstLastPoints, numVerticesPerSegment, width,
+				color, splineType);
+		}
 		
-		public SplineEntity AddSpline(Vector3[] inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints, 
+		private SplineEntity AddSplineGeneric(IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints, 
 			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
 			int actualNumControlPoints = insertFirstLastPoints ? inputNumControlPoints + 2 : inputNumControlPoints;
 			if (actualNumControlPoints < SplineBatch.MIN_NUM_CONTROL_POINTS || actualNumControlPoints > SplineBatch.MAX_NUM_CONTROL_POINTS) {
@@ -143,33 +153,6 @@ namespace PeDev.GpuSplines {
 				SplineComponent.GetNumVertices(actualNumControlPoints, numVerticesPerSegment)
 			);
 			AddSplineInBatch(batch, entity, inputControlPoints, inputStartIndex, inputNumControlPoints, insertFirstLastPoints, width);
-
-			return entity;
-		}
-
-		public SplineEntity AddSpline(List<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints,
-			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
-			int inputNumControlPoints = inputControlPoints.Count;
-			int actualNumControlPoints = insertFirstLastPoints ? inputNumControlPoints + 2 : inputNumControlPoints;
-			if (actualNumControlPoints < SplineBatch.MIN_NUM_CONTROL_POINTS || actualNumControlPoints > SplineBatch.MAX_NUM_CONTROL_POINTS) {
-				throw new Exception($"numControlPoints({actualNumControlPoints}) must be larger than {SplineBatch.MIN_NUM_CONTROL_POINTS} and less than {SplineBatch.MAX_NUM_CONTROL_POINTS}");
-			}
-			
-			numVerticesPerSegment = Mathf.Max(numVerticesPerSegment, MinimumVerticesPerSegment);
-			
-			// Optimize the linear vertices.
-			if (m_OptimizeLinearVertices && splineType == SplineType.Linear) {
-				numVerticesPerSegment = MinimumVerticesPerSegment;
-			}
-
-			SplineEntity entity = AddSplineEntityComponent(numVerticesPerSegment);
-			// Set up the batch.
-			SplineBatch batch = GetBatchOrCreateOne(
-				new SplineBatchKey() { color = color, splineType = splineType },
-				actualNumControlPoints,
-				SplineComponent.GetNumVertices(actualNumControlPoints, numVerticesPerSegment)
-			);
-			AddSplineInBatch(batch, entity, inputControlPoints, inputStartIndex, insertFirstLastPoints);
 
 			return entity;
 		}
@@ -265,11 +248,23 @@ namespace PeDev.GpuSplines {
 			batch.dirtyControlPoints = true;
 		}
 		
+		public void ModifyPoints(SplineEntity entity, Vector3[] inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints) {
+			ModifyPointsGeneric(entity, inputControlPoints, inputStartIndex, inputNumControlPoints, insertFirstLastPoints);
+		}
+		
 		public void ModifyPoints(SplineEntity entity, Vector3[] inputControlPoints, int inputNumControlPoints, bool insertFirstLastPoints) {
-			ModifyPoints(entity, inputControlPoints, 0, inputNumControlPoints, insertFirstLastPoints);
+			ModifyPointsGeneric(entity, inputControlPoints, 0, inputNumControlPoints, insertFirstLastPoints);
+		}
+		
+		public void ModifyPoints(SplineEntity entity, List<Vector3> inputControlPoints, bool insertFirstLastPoints) {
+			ModifyPointsGeneric(entity, inputControlPoints, 0, inputControlPoints.Count, insertFirstLastPoints);
+		}
+		
+		public void ModifyPoints(SplineEntity entity, List<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints) {
+			ModifyPointsGeneric(entity, inputControlPoints, inputStartIndex, inputControlPoints.Count, insertFirstLastPoints);
 		}
 
-		public void ModifyPoints(SplineEntity entity, Vector3[] inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints) {
+		private void ModifyPointsGeneric(SplineEntity entity, IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints) {
 			int rawNumControlPoints = inputNumControlPoints;
 			// Add 2 points at the first and the last.
 			if (insertFirstLastPoints) {
@@ -299,52 +294,6 @@ namespace PeDev.GpuSplines {
 						inputControlPoints[readIndex].x, inputControlPoints[readIndex].y, inputControlPoints[readIndex].z, 
 						batchCPs[modifyIndex].w
 						);
-			}
-				
-			if (insertFirstLastPoints) {
-				AddFirstAndLastPointToSplineInBatch(batch, comp.startIndexControlPoint, comp.endIndexControlPoint - 1);
-			}
-			Profiler.EndSample();
-
-			batch.dirtyControlPoints = true;
-		}
-
-		public void ModifyPoints(SplineEntity entity, List<Vector3> inputControlPoints, bool insertFirstLastPoints) {
-			ModifyPoints(entity, inputControlPoints, 0, insertFirstLastPoints);
-		}
-		
-		public void ModifyPoints(SplineEntity entity, List<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints) {
-			int inputNumControlPoints = inputControlPoints.Count;
-			
-			int rawNumControlPoints = inputNumControlPoints;
-			// Add 2 points at the first and the last.
-			if (insertFirstLastPoints) {
-				inputNumControlPoints += 2;
-			}
-
-			SplineComponent comp = m_Components[entity.id];
-			SplineBatch batch = m_SplineBatches[comp.indexBatch];
-			if (inputNumControlPoints != comp.numControlPoints) {
-				// slow path.
-				Profiler.BeginSample("ModifyPoints.SlowPath");
-				ModifyControlPointsInBatches(entity, inputControlPoints, inputStartIndex, insertFirstLastPoints);
-				Profiler.EndSample();
-				return;
-			}
-
-			// fast path.
-			Profiler.BeginSample("ModifyPoints.FastPath");
-			Vector4[] batchCPs = batch.controlPoints;
-			int startModifyIndex = insertFirstLastPoints ? comp.startIndexControlPoint + 1 : comp.startIndexControlPoint;
-
-			for (int i = 0; i < rawNumControlPoints; i++) {
-				int modifyIndex = startModifyIndex + i;
-				int readIndex = inputStartIndex + i;
-				batchCPs[modifyIndex] =
-					new Vector4(
-						inputControlPoints[readIndex].x, inputControlPoints[readIndex].y, inputControlPoints[readIndex].z, 
-						batchCPs[modifyIndex].w
-					);
 			}
 				
 			if (insertFirstLastPoints) {
@@ -711,7 +660,7 @@ namespace PeDev.GpuSplines {
 			return newBatch;
 		}
 
-		private void ModifyControlPointsInBatches(SplineEntity entity, Vector3[] inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints) {
+		private void ModifyControlPointsInBatches(SplineEntity entity, IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints) {
 			SplineBatch removeFromBatch = GetBatch(entity);
 			SplineBatchKey batchKey = removeFromBatch.batchProperties;
 			RemoveSplineInBatch(removeFromBatch, entity);
@@ -724,24 +673,9 @@ namespace PeDev.GpuSplines {
 			);
 			AddSplineInBatch(batch, entity, inputControlPoints, inputStartIndex, inputNumControlPoints, insertFirstLastPoints, -1f);
 		}
-
-		private void ModifyControlPointsInBatches(SplineEntity entity, List<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints) {
-			SplineBatch removeFromBatch = GetBatch(entity);
-			SplineBatchKey batchKey = removeFromBatch.batchProperties;
-			RemoveSplineInBatch(removeFromBatch, entity);
-
-			int inputNumControlPoints = inputControlPoints.Count;
-			int actualNumControlPoints = insertFirstLastPoints ? inputNumControlPoints + 2 : inputNumControlPoints;
-			SplineBatch batch = GetBatchOrCreateOne(
-				batchKey,
-				actualNumControlPoints,
-				SplineComponent.GetNumVertices(actualNumControlPoints, m_Components[entity.id].numVerticesPerSegment)
-			);
-			AddSplineInBatch(batch, entity, inputControlPoints, inputStartIndex, insertFirstLastPoints);
-		}
-
+		
 		private void AddSplineInBatch(SplineBatch batch, SplineEntity entity, 
-			Vector3[] inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints,
+			IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints,
 			float lineWidth) {
 			int startIndexControlPoint = batch.numControlPoints;
 			int rawNumControlPoints = inputNumControlPoints;
@@ -765,8 +699,8 @@ namespace PeDev.GpuSplines {
 					int writeIndex = startWriteIndex + i;
 					int readIndex = inputStartIndex + i;
 					batchCPs[writeIndex] = new Vector4(
-							inputControlPoints[readIndex].x, inputControlPoints[readIndex].y, inputControlPoints[readIndex].z,
-							lineWidth);
+						inputControlPoints[readIndex].x, inputControlPoints[readIndex].y, inputControlPoints[readIndex].z,
+						lineWidth);
 				}
 			} else {
 				// Keep the width.
@@ -784,40 +718,6 @@ namespace PeDev.GpuSplines {
 			}
 
 			batch.numControlPoints += inputNumControlPoints;
-			batch.numVertices += m_Components[entity.id].numVertices;
-			batch.dirtyMesh = true;
-			batch.dirtyControlPoints = true;
-		}
-
-		private void AddSplineInBatch(SplineBatch batch, SplineEntity entity, List<Vector3> inputControlPoints, int inputStartIndex, bool addFirstLastPoints) {
-			int numControlPoints = inputControlPoints.Count;
-			int startIndexControlPoint = batch.numControlPoints;
-			int rawNumControlPoints = numControlPoints;
-			// Add 2 points at the first and the last.
-			if (addFirstLastPoints) {
-				numControlPoints += 2;
-			}
-			
-			m_Components[entity.id].indexBatch = batch.indexBatch;
-			m_Components[entity.id].indexInBatchSplines = batch.splineCount;
-			m_Components[entity.id].numControlPoints = numControlPoints;
-			m_Components[entity.id].startIndexControlPoint = startIndexControlPoint;
-			m_Components[entity.id].startIndexVertices = batch.numVertices;
-			batch.AddToSplineList(entity);
-
-			int appendIndex = addFirstLastPoints ? startIndexControlPoint + 1 : startIndexControlPoint;
-			for (int i = 0; i < rawNumControlPoints; i++) {
-				int readIndex = inputStartIndex + i;
-				batch.controlPoints[appendIndex] =
-					new Vector4(inputControlPoints[readIndex].x, inputControlPoints[readIndex].y, inputControlPoints[readIndex].z, 0f);
-				appendIndex += 1;
-			}
-
-			if (addFirstLastPoints) {
-				AddFirstAndLastPointToSplineInBatch(batch, startIndexControlPoint, appendIndex);
-			}
-
-			batch.numControlPoints += numControlPoints;
 			batch.numVertices += m_Components[entity.id].numVertices;
 			batch.dirtyMesh = true;
 			batch.dirtyControlPoints = true;
