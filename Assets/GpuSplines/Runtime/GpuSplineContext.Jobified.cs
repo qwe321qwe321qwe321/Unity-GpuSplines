@@ -3,7 +3,9 @@ using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine.Jobs;
 
 namespace PeDev.GpuSplines {
 	// Jobified methods.
@@ -140,6 +142,40 @@ namespace PeDev.GpuSplines {
 
 			context.tempSplineBatchDirtyControlPoints.Dispose();
 			context.tempSplineBatches.Dispose();
+		}
+	}
+	
+	[BurstCompile]
+	public struct CopyTransformPositionJob : IJobParallelForTransform {
+		public NativeArray<float3> destination;
+
+		public void Execute(int index, TransformAccess transform) {
+			destination[index] = transform.position;
+		}
+	}
+
+	public struct BatchSplineInput {
+		public SplineEntity entity;
+		public int startIndex;
+		public int numControlPoints;
+	}
+	    
+	[BurstCompile]
+	public struct UpdateSplineControlPointsJob : IJobParallelFor {
+		[ReadOnly]
+		public NativeArray<BatchSplineInput> inputEntities;
+		[ReadOnly]
+		public NativeArray<float3> inputControlPoints;
+		    
+		public bool insertFirstLastPoints;
+		    
+		public GpuSplineContext.JobifiedContext splineContext;
+
+		    
+		public void Execute(int index) {
+			BatchSplineInput input = inputEntities[index];
+			SplineEntity entity = input.entity;
+			splineContext.ModifyPoints(entity, inputControlPoints, input.startIndex, input.numControlPoints, insertFirstLastPoints);
 		}
 	}
 }

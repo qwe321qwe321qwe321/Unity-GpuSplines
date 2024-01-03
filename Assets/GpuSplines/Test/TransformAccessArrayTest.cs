@@ -1,6 +1,5 @@
 using PeDev.GpuSplines;
 using Stella3D;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Burst;
@@ -115,18 +114,21 @@ namespace PeDev {
 
 		    Profiler.BeginSample("Job Schedules");
 		    if (randomMove) {
+			    // Randomly move.
 			    m_JobHandle = new MoveUpdateJob() {
 				    random = m_Random, 
 				    deltaTime = Time.deltaTime * moveSpeed,
 			    }.Schedule(m_TransformAccessArray);
 		    }
 
-		    m_JobHandle = new CopyTransformToArrayJob() {
-			    nativePositions = m_SharedPositions
+		    // Copy transform.position to m_SharedPositions.
+		    m_JobHandle = new CopyTransformPositionJob() {
+			    destination = m_SharedPositions
 		    }.Schedule(m_TransformAccessArray, m_JobHandle);
 
+		    // Jobified update spline control points.
 		    var splineContextJobified = m_Context.BeginJobifiedContext(Allocator.TempJob);
-		    m_JobHandle = new UpdateSplineJob() {
+		    m_JobHandle = new UpdateSplineControlPointsJob() {
 			    inputEntities = m_Splines,
 			    inputControlPoints = m_SharedPositions,
 			    insertFirstLastPoints = true,
@@ -154,40 +156,6 @@ namespace PeDev {
 		    public void Execute(int index, TransformAccess transform) {
 			    float3 newPosition = (float3)transform.position + random.NextFloat3Direction() * deltaTime;
 			    transform.position = newPosition;
-		    }
-	    }
-
-	    [BurstCompile]
-	    struct CopyTransformToArrayJob : IJobParallelForTransform {
-		    public NativeArray<float3> nativePositions;
-
-		    public void Execute(int index, TransformAccess transform) {
-			    nativePositions[index] = transform.position;
-		    }
-	    }
-
-	    struct BatchSplineInput {
-		    public SplineEntity entity;
-		    public int startIndex;
-		    public int numControlPoints;
-	    }
-	    
-	    [BurstCompile]
-	    struct UpdateSplineJob : IJobParallelFor {
-		    [ReadOnly]
-		    public NativeArray<BatchSplineInput> inputEntities;
-		    [ReadOnly]
-		    public NativeArray<float3> inputControlPoints;
-		    
-		    public bool insertFirstLastPoints;
-		    
-		    public GpuSplineContext.JobifiedContext splineContext;
-
-		    
-		    public void Execute(int index) {
-			    BatchSplineInput input = inputEntities[index];
-			    SplineEntity entity = input.entity;
-			    splineContext.ModifyPoints(entity, inputControlPoints, input.startIndex, input.numControlPoints, true);
 		    }
 	    }
     }
