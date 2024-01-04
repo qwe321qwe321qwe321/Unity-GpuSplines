@@ -190,6 +190,8 @@ namespace PeDev.GpuSplines {
 			if (m_OptimizeLinearVertices && splineType == SplineType.Linear) {
 				numVerticesPerSegment = MinimumVerticesPerSegment;
 			}
+
+			m_Components[entity.id].numVerticesPerSegment = numVerticesPerSegment;
 			
 			// Set up the batch.
 			SplineBatch batch = GetBatchOrCreateOne(
