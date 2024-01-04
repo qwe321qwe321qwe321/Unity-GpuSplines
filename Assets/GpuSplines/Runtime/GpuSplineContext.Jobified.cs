@@ -23,6 +23,46 @@ namespace PeDev.GpuSplines {
 
 			[NativeDisableParallelForRestriction]
 			public NativeArray<bool> tempSplineBatchDirtyControlPoints;
+			
+			[BurstCompile]
+			public unsafe void ModifyPoint(SplineEntity entity, int index, in float3 point, bool insertFirstLastPoints) {
+				SplineComponent comp = componentArray[entity.id];
+				int indexRange = insertFirstLastPoints ? 
+					comp.numControlPoints - 2 :
+					comp.numControlPoints;
+			
+#if UNITY_ASSERTIONS
+				// out of range check.
+				if (index < 0 || index >= indexRange) {
+					throw new IndexOutOfRangeException($"Index {index} is out of range {indexRange}.");
+				}
+#endif
+			
+				var batch = tempSplineBatches[comp.indexBatch];
+				int startIndexInBatch = insertFirstLastPoints ? comp.startIndexControlPoint + 1 : comp.startIndexControlPoint;
+
+				var batchCPs = batch.UnsafeControlPoints;
+				batchCPs[startIndexInBatch + index] = new float4(
+					point.x, point.y, point.z, 
+					batchCPs[startIndexInBatch + index].w
+				);
+
+				// Modify the first or the last if necessary.
+				if (insertFirstLastPoints) {
+					if (index == 0 || index == 1) {
+						int firstIndex = comp.startIndexControlPoint;
+						batchCPs[firstIndex] =
+							batchCPs[firstIndex + 1] * 2 - batchCPs[firstIndex + 2];
+					} else if (index == (indexRange - 1) || index == (indexRange - 2)) {
+						int lastIndex = comp.endIndexControlPoint - 1;
+						batchCPs[lastIndex] =
+							batchCPs[lastIndex - 1] * 2 - batchCPs[lastIndex - 2];
+					}
+				}
+
+				// Write only so there is no race condition.
+				tempSplineBatchDirtyControlPoints[comp.indexBatch] = true;
+			}
 
 			[BurstCompile]
 			public void ModifyPoints(SplineEntity entity, NativeArray<float3> controlPoints, int startReadIndex, int numControlPoints,
