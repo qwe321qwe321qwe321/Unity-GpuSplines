@@ -79,14 +79,23 @@ namespace PeDev.GpuSplines {
 		public SplineComponent GetComponent(SplineEntity entity) {
 			return m_Components[entity.id];
 		}
+
+		public bool IsDummyEntity(SplineEntity entity) {
+			return m_Components[entity.id].IsDummy();
+		}
 		
 		/// <summary>
 		/// Get the batch that entity belongs to. 
 		/// </summary>
 		/// <param name="entity"></param>
 		/// <returns></returns>
-		internal SplineBatch GetBatch(SplineEntity entity) {
-			return m_SplineBatches[m_Components[entity.id].indexBatch];
+		internal bool TryGetBatch(SplineEntity entity, out SplineBatch belongBatch) {
+			if (m_Components[entity.id].IsDummy()) {
+				belongBatch = null;
+				return false;
+			}
+			belongBatch = m_SplineBatches[m_Components[entity.id].indexBatch];
+			return true;
 		}
 
 		public void Dispose() {
@@ -156,6 +165,40 @@ namespace PeDev.GpuSplines {
 
 			return entity;
 		}
+		
+		#region Dummy Entity
+		public SplineEntity AddSplineDummy(int numVerticesPerSegment) {
+			SplineEntity entity = AddSplineEntityComponent(numVerticesPerSegment);
+			return entity;
+		}
+
+		public void AddSplineFromDummy(SplineEntity entity, IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints, 
+			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
+			if (!IsDummyEntity(entity)) {
+				// Only for dummy entity calls.
+				return;
+			}
+			int actualNumControlPoints = insertFirstLastPoints ? inputNumControlPoints + 2 : inputNumControlPoints;
+			if (actualNumControlPoints < SplineBatch.MIN_NUM_CONTROL_POINTS || actualNumControlPoints > SplineBatch.MAX_NUM_CONTROL_POINTS) {
+				throw new Exception($"numControlPoints({actualNumControlPoints}) must be larger than {SplineBatch.MIN_NUM_CONTROL_POINTS} and less than {SplineBatch.MAX_NUM_CONTROL_POINTS}");
+			}
+			
+			numVerticesPerSegment = Mathf.Max(numVerticesPerSegment, MinimumVerticesPerSegment);
+
+			// Optimize the linear vertices.
+			if (m_OptimizeLinearVertices && splineType == SplineType.Linear) {
+				numVerticesPerSegment = MinimumVerticesPerSegment;
+			}
+			
+			// Set up the batch.
+			SplineBatch batch = GetBatchOrCreateOne(
+				new SplineBatchKey() { color = color, splineType = splineType },
+				actualNumControlPoints,
+				SplineComponent.GetNumVertices(actualNumControlPoints, numVerticesPerSegment)
+			);
+			AddSplineInBatch(batch, entity, inputControlPoints, inputStartIndex, inputNumControlPoints, insertFirstLastPoints, width);
+		}
+		#endregion
 
 		/// <summary>
 		/// Add a new entity and component into the ECS arrays internally.
@@ -167,11 +210,11 @@ namespace PeDev.GpuSplines {
 
 			// Take a new entity.
 			SplineEntity entity = m_Entities[m_Count];
-			m_Count++;
 
 			// Clear the old data.
-			m_Components[entity.id] = new SplineComponent() { numVerticesPerSegment = numVerticesPerSegment, };
+			m_Components[entity.id] = SplineComponent.Create(m_Count, numVerticesPerSegment);
 
+			m_Count++;
 			return entity;
 		}
 
@@ -181,10 +224,11 @@ namespace PeDev.GpuSplines {
 		/// <param name="entity"></param>
 		/// <returns></returns>
 		public bool RemoveSpline(SplineEntity entity) {
-			if (!RemoveSplineInBatch(GetBatch(entity), entity)) {
-				return false;
+			if (TryGetBatch(entity, out var belongBatch)) {
+				RemoveSplineInBatch(belongBatch, entity);
 			}
 
+			// Remove entity no matter it is a dummy.
 			SplineComponent entityValue = m_Components[entity.id];
 			
 			// Remove swap back in m_Entities list.
@@ -213,6 +257,9 @@ namespace PeDev.GpuSplines {
 		/// Modify a single control point.
 		/// </summary>
 		public void ModifyPoint(SplineEntity entity, int index, Vector3 point, bool insertFirstLastPoints) {
+			if (IsDummyEntity(entity)) {
+				return;
+			}
 			SplineComponent comp = m_Components[entity.id];
 			int indexRange = insertFirstLastPoints ? 
 				comp.numControlPoints - 2 :
@@ -265,6 +312,9 @@ namespace PeDev.GpuSplines {
 		}
 
 		private void ModifyPointsGeneric(SplineEntity entity, IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints, float lineWidth) {
+			if (IsDummyEntity(entity)) {
+				return;
+			}
 			int rawNumControlPoints = inputNumControlPoints;
 			// Add 2 points at the first and the last.
 			if (insertFirstLastPoints) {
@@ -320,6 +370,9 @@ namespace PeDev.GpuSplines {
 		}
 
 		public void ModifyWidth(SplineEntity entity, float width) {
+			if (IsDummyEntity(entity)) {
+				return;
+			}
 			SplineComponent comp = m_Components[entity.id];
 			SplineBatch batch = m_SplineBatches[comp.indexBatch];
 
@@ -338,9 +391,14 @@ namespace PeDev.GpuSplines {
 		public void ModifyVerticesPerSegment(SplineEntity entity, int value) {
 			value = Mathf.Max(value, MinimumVerticesPerSegment);
 			
+			if (!TryGetBatch(entity, out var belongBatch)) {
+				m_Components[entity.id].numVerticesPerSegment = value;
+				return;
+			}
+			
 			// Optimize linear vertices.
 			if (m_OptimizeLinearVertices && 
-			    GetBatch(entity).batchProperties.splineType == SplineType.Linear) {
+			    belongBatch.batchProperties.splineType == SplineType.Linear) {
 				value = MinimumVerticesPerSegment;
 			}
 
@@ -350,6 +408,9 @@ namespace PeDev.GpuSplines {
 		private void ModifyVerticesPerSegmentInternal(SplineEntity entity, int value) {
 			ref SplineComponent comp = ref m_Components[entity.id];
 			if (comp.numVerticesPerSegment == value) {
+				return;
+			}
+			if (comp.IsDummy()) {
 				return;
 			}
 			SplineBatch belongBatch = m_SplineBatches[comp.indexBatch];
@@ -387,13 +448,19 @@ namespace PeDev.GpuSplines {
 		}
 		
 		public void ModifyColor(SplineEntity entity, Color color) {
-			SplineBatchKey prop = GetBatch(entity).batchProperties;
+			if (!TryGetBatch(entity, out var belongBatch)) {
+				return;
+			}
+			SplineBatchKey prop = belongBatch.batchProperties;
 			prop.color = color;
 			ModifyProperties(entity, prop);
 		}
 		
 		public void ModifySplineType(SplineEntity entity, SplineType splineType) {
-			SplineBatchKey prop = GetBatch(entity).batchProperties;
+			if (!TryGetBatch(entity, out var belongBatch)) {
+				return;
+			}
+			SplineBatchKey prop = belongBatch.batchProperties;
 			prop.splineType = splineType;
 			ModifyProperties(entity, prop);
 			
@@ -407,12 +474,19 @@ namespace PeDev.GpuSplines {
 		}
 		
 		public void ModifySplineType(SplineEntity entity, SplineType splineType, int numVerticesPerSegment) {
-			SplineBatchKey prop = GetBatch(entity).batchProperties;
+			if (!TryGetBatch(entity, out var belongBatch)) {
+				m_Components[entity.id].numVerticesPerSegment = numVerticesPerSegment;
+				return;
+			}
+			SplineBatchKey prop = belongBatch.batchProperties;
 			prop.splineType = splineType;
 			ModifyProperties(entity, prop, numVerticesPerSegment);
 		}
 		
 		public void ModifyProperties(SplineEntity entity, Color color, SplineType splineType) {
+			if (IsDummyEntity(entity)) {
+				return;
+			}
 			SplineBatchKey prop = new SplineBatchKey() { color = color, splineType = splineType };
 			ModifyProperties(entity, prop);
 			
@@ -425,11 +499,17 @@ namespace PeDev.GpuSplines {
 			}
 		}
 		public void ModifyProperties(SplineEntity entity, Color color, SplineType splineType, int numVerticesPerSegment) {
+			if (IsDummyEntity(entity)) {
+				return;
+			}
 			SplineBatchKey prop = new SplineBatchKey() { color = color, splineType = splineType };
 			ModifyProperties(entity, prop, numVerticesPerSegment);
 		}
 
 		private void ModifyProperties(SplineEntity entity, SplineBatchKey prop, int numVerticesPerSegment) {
+			if (IsDummyEntity(entity)) {
+				return;
+			}
 			ModifyProperties(entity, prop);
 			
 			// Optimize linear vertices.
@@ -444,7 +524,9 @@ namespace PeDev.GpuSplines {
 		}
 
 		private void ModifyProperties(SplineEntity entity, SplineBatchKey prop) {
-			SplineBatch batch = m_SplineBatches[m_Components[entity.id].indexBatch];
+			if (!TryGetBatch(entity, out var batch)) {
+				return;
+			}
 			if (prop.Equals(batch.batchProperties)) {
 				// no need to change.
 				return;
@@ -678,7 +760,9 @@ namespace PeDev.GpuSplines {
 		private void ModifyControlPointsInBatches(SplineEntity entity, IReadOnlyList<Vector3> inputControlPoints, 
 			int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints,
 			float lineWidth) {
-			SplineBatch removeFromBatch = GetBatch(entity);
+			if (!TryGetBatch(entity, out SplineBatch removeFromBatch)) {
+				return;
+			}
 			SplineBatchKey batchKey = removeFromBatch.batchProperties;
 			RemoveSplineInBatch(removeFromBatch, entity);
 			
@@ -750,7 +834,7 @@ namespace PeDev.GpuSplines {
 				batch.controlPoints[lastIndex - 1] * 2 - batch.controlPoints[lastIndex - 2];
 		}
 
-		private bool RemoveSplineInBatch(SplineBatch batch, SplineEntity entity) {
+		private void RemoveSplineInBatch(SplineBatch batch, SplineEntity entity) {
 			SplineComponent removeComponent = m_Components[entity.id];
 			int removeNumControlPoints = removeComponent.numControlPoints;
 			int removeNumVertices = removeComponent.numVertices;
@@ -759,9 +843,11 @@ namespace PeDev.GpuSplines {
 			int removeIndex = removeComponent.indexInBatchSplines;
 			
 			// Remove Range.
-			Array.Copy(batch.controlPoints, removeComponent.endIndexControlPoint,
-				batch.controlPoints, removeComponent.startIndexControlPoint,
-				(batch.numControlPoints - removeComponent.endIndexControlPoint));
+			if ((batch.numControlPoints - removeComponent.endIndexControlPoint) > 0) {
+				Array.Copy(batch.controlPoints, removeComponent.endIndexControlPoint,
+					batch.controlPoints, removeComponent.startIndexControlPoint,
+					(batch.numControlPoints - removeComponent.endIndexControlPoint));
+			}
 			batch.numControlPoints -= removeNumControlPoints;
 			batch.numVertices -= removeNumVertices;
 			
@@ -800,19 +886,22 @@ namespace PeDev.GpuSplines {
 				}
 				Debug.Log($"Removed all spline in this batch. Active Batch Count: {m_ActiveSplineCount}");
 			}
-			return true;
 		}
 
 		private void MoveSplineToBatch(SplineBatch toBatch, SplineEntity entity) {
-			var srcBatch = GetBatch(entity);
+			if (!TryGetBatch(entity, out SplineBatch srcBatch)) {
+				return;
+			}
 			if (srcBatch == toBatch) {
 				return;
 			}
 
 			// Copy to the new batch.
-			Array.Copy(srcBatch.controlPoints, m_Components[entity.id].startIndexControlPoint,
-				toBatch.controlPoints, toBatch.numControlPoints,
-				m_Components[entity.id].numControlPoints);
+			if (m_Components[entity.id].numControlPoints > 0) {
+				Array.Copy(srcBatch.controlPoints, m_Components[entity.id].startIndexControlPoint,
+					toBatch.controlPoints, toBatch.numControlPoints,
+					m_Components[entity.id].numControlPoints);
+			}
 
 			// Remove in old batch.
 			RemoveSplineInBatch(srcBatch, entity);

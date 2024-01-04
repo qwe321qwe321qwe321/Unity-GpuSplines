@@ -11,6 +11,27 @@
 	};
 
 	public struct SplineComponent {
+		public bool IsDummy() {
+			return indexBatch < 0;
+		}
+
+		public static SplineComponent Empty = new SplineComponent() {
+			indexBatch = -1,
+			indexEntity = -1,
+			indexInBatchSplines = -1,
+			startIndexControlPoint = -1,
+			numControlPoints = 0,
+			startIndexVertices = -1,
+			numVerticesPerSegment = 0,
+		};
+
+		public static SplineComponent Create(int indexEntity, int numVerticesPerSegment) {
+			SplineComponent value= Empty;
+			value.indexEntity = indexEntity;
+			value.numVerticesPerSegment = numVerticesPerSegment;
+			return value;
+		}
+		
 		/// <summary>
 		/// The index of the entity in the ECS array.
 		/// </summary>
