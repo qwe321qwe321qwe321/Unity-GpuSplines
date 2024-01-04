@@ -47,7 +47,7 @@
                 uint index;
                 // data.x = spline interval t [0..1].
                 // data.y = V texture coordinate.
-                // data.z = isNotEnd. 0 = the end of the spline. 1 = Not end.
+                // data.z = isNotEndOfSpline. 0 = the end of the spline. 1 = Not end.
                 half3 data;
             };
 
@@ -70,7 +70,7 @@
             static const float vertex_leftOrRight[6] = {
                 1, 0, 1, 0, 0, 1
             };
-            static const float vertex_segment_offset[6] = {
+            static const uint vertex_is_next[6] = {
                 0, 0, 1, 0, 1, 1
             };
 
@@ -79,8 +79,17 @@
                 uint seg_idx = vid / 6; // Segment (Quad) index.
                 uint v_idx = vid - seg_idx * 6; // Vertex index in a segment.
 
-                const half isNotEnd = _SegmentBuffer[seg_idx].data.z;
-                const Segment segment = _SegmentBuffer[seg_idx + vertex_segment_offset[v_idx] * isNotEnd];
+                const half isNotEndOfSpline = _SegmentBuffer[seg_idx].data.z;
+                const uint isNextVertex = vertex_is_next[v_idx];
+                const Segment segment = _SegmentBuffer[seg_idx + isNextVertex * isNotEndOfSpline];
+                
+                const uint cp0_index = segment.index;
+                const float isEndOfSplineVertex = (1.0 - isNotEndOfSpline) * isNextVertex;
+                const float t = lerp(segment.data.x, 1.0, isEndOfSplineVertex);
+                const float tex_v = lerp(segment.data.y, 1.0, isEndOfSplineVertex);
+                // left = 0, right = 1
+                const float leftOrRight = vertex_leftOrRight[v_idx];
+                
 #ifdef DEBUG_DRAW
                  v2f v;
                  float3 pos = _tempPos[v_idx] + float3(1, 0, 0) * seg_idx;
@@ -92,12 +101,6 @@
                  v.uv = float2(tex_v, 0);
                  return v;
 #else
-
-                const uint cp0_index = segment.index;
-                const float t = segment.data.x;
-                const float tex_v = segment.data.y;
-                // left = 0, right = 1
-                const float leftOrRight = vertex_leftOrRight[v_idx];
                 
                 float3 pos = ComputeSplineVertex(cp0_index, t, leftOrRight);
                 

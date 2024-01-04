@@ -112,7 +112,7 @@ namespace PeDev.GpuSplines {
 		// V texture coordinate
 		public float tex_v;
 		// 0 = the end of the spline. 1 = Not end.
-		public float isNotEnd;
+		public float isNotEndOfSpline;
 	};
 	
 	[BurstCompile]
@@ -135,21 +135,28 @@ namespace PeDev.GpuSplines {
 			float invNumVertices = 1f / numVertices;
 
 			int startIndexCp = component.startIndexControlPoint;
-			int writeIndexVertices = component.startIndexVertices;
+			// N vertices of line only have N - 1 segments. 
+			int writeIndexSegments = component.startIndexVertices - s;
+			int endWriteIndexSegment = writeIndexSegments + (component.numVertices - 1);
+			
 			for (int l = 0; l < lineCount; l++) {
-				float subInterval = 0f;
 				for (int i = 0; i < component.numVerticesPerSegment; i++) {
 					int index = startIndexCp + l;
-					subInterval = (float)(i) / (component.numVerticesPerSegment - 1);
+					float subInterval = (float)(i) / (component.numVerticesPerSegment - 1);
 					float norm = ((l * component.numVerticesPerSegment) + i) * invNumVertices;
 
-					segmentBuffer[writeIndexVertices] = new ProceduralSegment() {
+					segmentBuffer[writeIndexSegments] = new ProceduralSegment() {
 						t = subInterval,
 						index = (uint)index,
 						tex_v = norm,
-						isNotEnd = (l < lineCount - 1 || i < component.numVerticesPerSegment - 1) ? 1.0f : 0.0f
+						isNotEndOfSpline = (writeIndexSegments == endWriteIndexSegment - 1) ? 0.0f : 1.0f
 					};
-					writeIndexVertices += 1;
+					
+					writeIndexSegments += 1;
+					if (writeIndexSegments == endWriteIndexSegment) {
+						// end.
+						break;
+					}
 				}
 			}
 		}
