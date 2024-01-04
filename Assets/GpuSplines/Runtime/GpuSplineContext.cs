@@ -129,12 +129,12 @@ namespace PeDev.GpuSplines {
 				insertFirstLastPoints, numVerticesPerSegment, width, color, splineType);
 		}
 
-		public SplineEntity AddSpline(List<Vector3> inputControlPoints, bool insertFirstLastPoints,
+		public SplineEntity AddSpline(IReadOnlyList<Vector3> inputControlPoints, bool insertFirstLastPoints,
 			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
 			return AddSplineGeneric(inputControlPoints, 0, inputControlPoints.Count, insertFirstLastPoints, numVerticesPerSegment, width, color, splineType);
 		}
 
-		public SplineEntity AddSpline(List<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints,
+		public SplineEntity AddSpline(IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints,
 			int numVerticesPerSegment, float width, Color color, SplineType splineType) {
 			return AddSplineGeneric(inputControlPoints, inputStartIndex, inputControlPoints.Count, insertFirstLastPoints, numVerticesPerSegment, width,
 				color, splineType);
@@ -197,6 +197,12 @@ namespace PeDev.GpuSplines {
 				SplineComponent.GetNumVertices(actualNumControlPoints, numVerticesPerSegment)
 			);
 			AddSplineInBatch(batch, entity, inputControlPoints, inputStartIndex, inputNumControlPoints, insertFirstLastPoints, width);
+		}
+
+		public void RemoveSplineToDummy(SplineEntity entity) {
+			if (TryGetBatch(entity, out var belongBatch)) {
+				RemoveSplineInBatch(belongBatch, entity);
+			}
 		}
 		#endregion
 
@@ -303,11 +309,11 @@ namespace PeDev.GpuSplines {
 			ModifyPointsGeneric(entity, inputControlPoints, 0, inputNumControlPoints, insertFirstLastPoints, lineWidth);
 		}
 		
-		public void ModifyPoints(SplineEntity entity, List<Vector3> inputControlPoints, bool insertFirstLastPoints, float lineWidth = -1f) {
+		public void ModifyPoints(SplineEntity entity, IReadOnlyList<Vector3> inputControlPoints, bool insertFirstLastPoints, float lineWidth = -1f) {
 			ModifyPointsGeneric(entity, inputControlPoints, 0, inputControlPoints.Count, insertFirstLastPoints, lineWidth);
 		}
 		
-		public void ModifyPoints(SplineEntity entity, List<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints, float lineWidth = -1f) {
+		public void ModifyPoints(SplineEntity entity, IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, bool insertFirstLastPoints, float lineWidth = -1f) {
 			ModifyPointsGeneric(entity, inputControlPoints, inputStartIndex, inputControlPoints.Count, insertFirstLastPoints, lineWidth);
 		}
 
