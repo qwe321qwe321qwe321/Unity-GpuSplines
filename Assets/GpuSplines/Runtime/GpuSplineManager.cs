@@ -48,20 +48,11 @@ namespace PeDev.GpuSplines {
 
 		private void OnDrawGizmos() {
 			if (drawControlPointsInGizmos) {
-				foreach (var batch in Context.GetSplineBatches()) {
-					Gizmos.color = Color.yellow;
-					for (int i = 0; i < batch.numControlPoints; i++) {
-						Gizmos.DrawSphere(batch.controlPoints[i], 0.1f);
-					}
-				}
+				GpuSplineGizmos.DrawAllControlPoints(Context, Color.yellow, 0.1f);
 			}
 			
 			if (drawBoundsInGizmos) {
-				foreach (var batch in Context.GetSplineBatches()) {
-					Gizmos.color = Color.green;
-					Bounds bounds = batch.meshBounds;
-					Gizmos.DrawWireCube(bounds.center, bounds.size);
-				}
+				GpuSplineGizmos.DrawAllBatchBounds(Context, Color.green);
 			}
 		}
 	}
