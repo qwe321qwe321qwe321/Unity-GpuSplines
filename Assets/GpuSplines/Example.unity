@@ -227,9 +227,9 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 10000
   field of view: 60
-  orthographic: 1
+  orthographic: 0
   orthographic size: 5
   m_Depth: -1
   m_CullingMask:
@@ -253,8 +253,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 667835801}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalRotation: {x: 0.229697, y: -0.15686305, z: 0.037539724, w: 0.95980424}
+  m_LocalPosition: {x: 131.63715, y: 204.49648, z: -408.5266}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -302,10 +302,10 @@ MonoBehaviour:
   - {x: 5, y: 0, z: 0}
   width: 0.1
   color: {r: 1, g: 0.7311321, b: 0.7311321, a: 0}
-  splineType: 0
+  splineType: 1
   numVerticesPerSegment: 10
   createSplines: 0
-  createNum: 1000
+  createNum: 10000
   randomDestroySplines: 0
   destroyNum: 10
   randomModifySinglePoint: 0
@@ -358,13 +358,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef1b839b8a789914a83e462e5ef439a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  lineColor: {r: 1, g: 0.93777597, b: 0.8537736, a: 1}
   createPrimitive: 0
   initialRadius: 100
   objectCount: 10000
-  randomMove: 1
-  moveSpeed: 5
-  splineCount: 1000
-  splineWidthRandomMin: 0.1
+  randomMove: 0
+  moveSpeed: 150
+  splineCount: 2000
+  splineWidthRandomMin: 0.01
   splineWidthRandomMax: 1
   useInput2: 0
 --- !u!4 &1701989531
