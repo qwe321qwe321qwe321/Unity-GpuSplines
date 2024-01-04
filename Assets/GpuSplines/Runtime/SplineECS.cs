@@ -1,5 +1,7 @@
-﻿namespace PeDev.GpuSplines {
-	public struct SplineEntity {
+﻿using System;
+
+namespace PeDev.GpuSplines {
+	public readonly struct SplineEntity : IEquatable<SplineEntity> {
 		/// <summary>
 		/// The index of the component in the ECS array.
 		/// </summary>
@@ -8,7 +10,19 @@
 		internal SplineEntity(int id) {
 			this.id = id;
 		}
-	};
+
+		public static SplineEntity Invalid => new SplineEntity(-1);
+
+		public bool IsValid() {
+			return id >= 0;
+		}
+
+		public bool Equals(SplineEntity other) => id == other.id;
+
+		public override bool Equals(object obj) => obj is SplineEntity other && Equals(other);
+
+		public override int GetHashCode() => id;
+	}
 
 	public struct SplineComponent {
 		public bool IsDummy() {
