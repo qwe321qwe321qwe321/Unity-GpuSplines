@@ -13,6 +13,7 @@ using Random = Unity.Mathematics.Random;
 
 namespace PeDev {
     public class TransformAccessArrayTest : MonoBehaviour {
+	    public Color lineColor = Color.white;
 	    public bool createPrimitive = true;
 	    public float initialRadius = 10f;
 	    public int objectCount = 1000;
@@ -25,7 +26,6 @@ namespace PeDev {
 	    private readonly List<GameObject> m_ObjectLists = new List<GameObject>();
 	    private TransformAccessArray m_TransformAccessArray;
 	    private JobHandle m_JobHandle;
-	    private MoveUpdateJob m_MoveUpdateJob;
 	    private Random m_Random;
 
 	    public bool useInput2 = false;
@@ -82,7 +82,7 @@ namespace PeDev {
 			    var entity = m_Context.AddSpline(
 				    positions, startIndex, 
 				    numControlPoints, true, 10, 
-				    UnityEngine.Random.Range(splineWidthRandomMin, splineWidthRandomMax), Color.yellow, SplineType.CatmullRom);
+				    UnityEngine.Random.Range(splineWidthRandomMin, splineWidthRandomMax), lineColor, SplineType.CatmullRom);
 
 			    m_Splines[i] = new BatchSplineInput() {
 				    entity = entity, startIndex = startIndex, numControlPoints = numControlPoints
@@ -147,9 +147,17 @@ namespace PeDev {
 		    Profiler.BeginSample("Job Schedules");
 		    if (randomMove) {
 			    // Randomly move.
+			    // m_JobHandle = new RadnomMoveUpdateJob() {
+				   //  random = m_Random, 
+				   //  deltaTime = Time.deltaTime * moveSpeed,
+			    // }.Schedule(m_TransformAccessArray);
+			    
 			    m_JobHandle = new MoveUpdateJob() {
-				    random = m_Random, 
-				    deltaTime = Time.deltaTime * moveSpeed,
+				    speed = moveSpeed,
+				    deltaTime = Time.deltaTime,
+				    time = Time.time,
+				    count = m_TransformAccessArray.length,
+				    random = m_Random
 			    }.Schedule(m_TransformAccessArray);
 		    }
 
@@ -198,12 +206,41 @@ namespace PeDev {
 	    }
 	    
 	    [BurstCompile]
-	    struct MoveUpdateJob : IJobParallelForTransform {
+	    struct RadnomMoveUpdateJob : IJobParallelForTransform {
 		    public Random random;
 		    public float deltaTime;
 		    
 		    public void Execute(int index, TransformAccess transform) {
 			    float3 newPosition = (float3)transform.position + random.NextFloat3Direction() * deltaTime;
+			    transform.position = newPosition;
+		    }
+	    }
+	    
+	    [BurstCompile]
+	    struct MoveUpdateJob : IJobParallelForTransform {
+		    public float speed;
+		    public float deltaTime;
+		    public float time;
+		    public float count;
+		    public Random random;
+		    
+		    private static float Hash1d(float u)
+		    {
+			    return math.frac(math.sin(u)*143.9f);	// scale this down to kill the jitters
+		    }
+		    
+		    public void Execute(int index, TransformAccess transform) {
+			    float3 pos = (float3)transform.position;
+			    float3 dir = math.normalize(pos);
+			    float3 tan = math.normalize(math.cross(dir, math.up()));
+			    float rand = Hash1d((float)index / (count - 1));
+
+			    float duration = math.lerp(1f, 2f, rand);
+			    float sign = Mathf.PingPong(time / duration, 1f) * 2 - 1f;
+			    dir = sign * dir;
+			    tan = tan * (index % 2 == 0 ? 1.0f : -1.0f);
+			    float spd = speed * math.lerp(0.1f, 10f, Hash1d(time / duration));
+			    float3 newPosition = (float3)transform.position + (dir*speed + tan * speed) * deltaTime;
 			    transform.position = newPosition;
 		    }
 	    }
