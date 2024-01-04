@@ -39,6 +39,7 @@ namespace PeDev.GpuSplines {
 		
 		
 		internal IReadOnlyList<SplineBatch> GetSplineBatches() => m_SplineBatches.AsReadOnly();
+		internal int ActiveSplineCount => m_ActiveSplineCount;
 		
 		/// <summary>
 		/// Set the mode to draw.
