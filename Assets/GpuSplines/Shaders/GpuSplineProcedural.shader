@@ -48,7 +48,7 @@
                 // data.x = spline interval t [0..1].
                 // data.y = V texture coordinate.
                 // data.z = isNotEndOfSpline. 0 = the end of the spline. 1 = Not end.
-                half3 data;
+                float3 data;
             };
 
             StructuredBuffer<Segment> _SegmentBuffer;

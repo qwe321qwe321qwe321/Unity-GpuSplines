@@ -107,12 +107,10 @@ namespace PeDev.GpuSplines {
 	{
 		// index in the control point uniform.
 		public uint index;
-		// spline interval t [0..1]
-		public float t;
-		// V texture coordinate
-		public float tex_v;
-		// 0 = the end of the spline. 1 = Not end.
-		public float isNotEndOfSpline;
+		// x: spline interval t [0..1]
+		// y: V texture coordinate
+		// z: 0 = the end of the spline. 1 = Not end. 
+		public float3 data;
 	};
 	
 	[BurstCompile]
@@ -146,10 +144,13 @@ namespace PeDev.GpuSplines {
 					float norm = ((l * component.numVerticesPerSegment) + i) * invNumVertices;
 
 					segmentBuffer[writeIndexSegments] = new ProceduralSegment() {
-						t = subInterval,
 						index = (uint)index,
-						tex_v = norm,
-						isNotEndOfSpline = (writeIndexSegments == endWriteIndexSegment - 1) ? 0.0f : 1.0f
+						data = new float3(
+							subInterval, // t
+							norm,  // tex_v
+							// isNotEndOfSpline.
+							(writeIndexSegments == endWriteIndexSegment - 1) ? 0.0f : 1.0f
+							),
 					};
 					
 					writeIndexSegments += 1;
