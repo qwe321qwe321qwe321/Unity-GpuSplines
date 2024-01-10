@@ -13,6 +13,16 @@ namespace PeDev.GpuSplines {
 		public const int MAX_NUM_CONTROL_POINTS = 1000;
 		public const int MIN_NUM_CONTROL_POINTS = 4;
 
+		internal bool IsValid() {
+			return numControlPoints >= 0 && numVertices >= 0;
+		}
+
+		internal void CheckInvalidAndThrow() {
+			if (!IsValid()) {
+				throw new InvalidOperationException($"Invalid SplineBatch {this}");
+			}
+		}
+		
 		public bool IsEmpty() {
 			return numControlPoints == 0;
 		}
@@ -147,6 +157,15 @@ namespace PeDev.GpuSplines {
 				m_SharedSplineEntities = null;
 				splineCount = 0;
 			}
+		}
+
+		public override string ToString() {
+			return $"(SplineBatch) numVertices={numVertices}, " +
+			       $"numControlPoints={numControlPoints}, " +
+			       $"splineCount={splineCount}, " +
+			       $"splineCapcity={m_SharedSplineEntities.Length}, " +
+			       $"controlPointBounds={controlPointBounds}, " +
+			       $"meshBounds={meshBounds}";
 		}
 	}
 	

@@ -30,13 +30,14 @@ namespace PeDev.GpuSplines {
 		}
 
 		public static SplineComponent Empty = new SplineComponent() {
-			indexBatch = -1,
 			indexEntity = -1,
-			indexInBatchSplines = -1,
-			startIndexControlPoint = -1,
-			numControlPoints = 0,
-			startIndexVertices = -1,
 			numVerticesPerSegment = 0,
+			
+			indexBatch = -1,
+			indexInBatchSplines = -1,
+			numControlPoints = 0,
+			startIndexControlPoint = -1,
+			startIndexVertices = -1,
 		};
 
 		public static SplineComponent Create(int indexEntity, int numVerticesPerSegment) {
@@ -45,11 +46,30 @@ namespace PeDev.GpuSplines {
 			value.numVerticesPerSegment = numVerticesPerSegment;
 			return value;
 		}
+
+		internal void SetDataForBatch(int indexBatch, int indexInBatchSplines, int numControlPoints, int startIndexControlPoint, int startIndexVertices) {
+			this.indexBatch = indexBatch;
+			this.indexInBatchSplines = indexInBatchSplines;
+			this.numControlPoints = numControlPoints;
+			this.startIndexControlPoint = startIndexControlPoint;
+			this.startIndexVertices = startIndexVertices;
+		}
+		
+		internal void ClearDataForBatch() {
+			SplineComponent empty = Empty;
+			this.indexBatch = empty.indexBatch;
+			this.indexInBatchSplines = empty.indexInBatchSplines;
+			this.numControlPoints = empty.numControlPoints;
+			this.startIndexControlPoint = empty.startIndexControlPoint;
+			this.startIndexVertices = empty.startIndexVertices;
+		}
 		
 		/// <summary>
 		/// The index of the entity in the ECS array.
 		/// </summary>
 		public int indexEntity { get; internal set; }
+
+		public int numVerticesPerSegment { get; internal set; }
 
 		/// <summary>
 		/// The index of the SplineBatch list.
@@ -64,14 +84,12 @@ namespace PeDev.GpuSplines {
 		
 		public int startIndexControlPoint { get; internal set; }
 		public int endIndexControlPoint => startIndexControlPoint + numControlPoints;
-		public int numControlPoints { get; internal set; }
-
+		public int numControlPoints { get; private set; }
 		public int startIndexVertices { get; internal set; }
-		public int numVerticesPerSegment { get; internal set; }
 		public int numVertices => GetNumVertices(this.numControlPoints, this.numVerticesPerSegment);
 
 		public static int GetNumVertices(int numControlPoints, int numVerticesPerSegment) {
-			return (numControlPoints - 3) * numVerticesPerSegment;
+			return Math.Max(numControlPoints - 3, 0) * numVerticesPerSegment;
 		}
 	}
 }

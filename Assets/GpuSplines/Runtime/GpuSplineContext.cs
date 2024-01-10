@@ -18,9 +18,11 @@ namespace PeDev.GpuSplines {
 			DrawMesh,
 			DrawProcedural
 		}
-
+		
+		// DrawMode.DrawMesh supports all platforms.
+		// So it should be default value.
 		private DrawMode m_DrawMode = DrawMode.DrawMesh;
-		private bool m_OptimizeLinearVertices = true;
+		private bool m_OptimizeLinearVertices = false;
 		
 
 		private int m_Count = 0;
@@ -441,6 +443,10 @@ namespace PeDev.GpuSplines {
 				comp.numVerticesPerSegment = value;
 				// The spline in the new batch has to be the last one, so we don't need to update other splines. 
 				newBatch.numVertices += numVerticesDiff;
+				
+				if (newBatch.numVertices < 0) {
+					Debug.LogError($"There is something wrong with SplineBatch. {newBatch}");
+				}
 				return;
 			}
 			
@@ -566,8 +572,12 @@ namespace PeDev.GpuSplines {
 		public void Update() {
 			for (int i = 0; i < m_ActiveSplineCount; i++) {
 				SplineBatch batch = m_SplineBatches[i];
+				if (!batch.IsValid()) {
+					Debug.LogError($"Weird behaviour: The batch is not a valid batch. There must be something wrong in code. {i}/{m_ActiveSplineCount} \n{batch}");
+					continue;
+				}
 				if (batch.IsEmpty()) {
-					Debug.LogWarning($"Weird behaviour: The batch should not be empty if it is active. {i}/{m_ActiveSplineCount}");
+					Debug.LogWarning($"Weird behaviour: The batch should not be empty if it is active. {i}/{m_ActiveSplineCount}\n{batch}");
 					continue;
 				}
 				
@@ -787,18 +797,25 @@ namespace PeDev.GpuSplines {
 		private void AddSplineInBatch(SplineBatch batch, SplineEntity entity, 
 			IReadOnlyList<Vector3> inputControlPoints, int inputStartIndex, int inputNumControlPoints, bool insertFirstLastPoints,
 			float lineWidth) {
+#if UNITY_EDITOR
+			if (m_Components[entity.id].indexBatch >= 0) {
+				Debug.LogError($"You're trying to add a spline to a batch but the spline has already inside the other batch. id={entity.id}, indexBatch={m_Components[entity.id].indexBatch}");
+				return;
+			}
+#endif
 			int startIndexControlPoint = batch.numControlPoints;
 			int rawNumControlPoints = inputNumControlPoints;
 			// Add 2 points at the first and the last.
 			if (insertFirstLastPoints) {
 				inputNumControlPoints += 2;
 			}
-			
-			m_Components[entity.id].indexBatch = batch.indexBatch;
-			m_Components[entity.id].indexInBatchSplines = batch.splineCount;
-			m_Components[entity.id].numControlPoints = inputNumControlPoints;
-			m_Components[entity.id].startIndexControlPoint = startIndexControlPoint;
-			m_Components[entity.id].startIndexVertices = batch.numVertices;
+
+			m_Components[entity.id].SetDataForBatch(
+				batch.indexBatch,
+				batch.splineCount, 
+				inputNumControlPoints,
+				startIndexControlPoint,
+				batch.numVertices);
 			batch.AddToSplineList(entity);
 
 			Vector4[] batchCPs = batch.controlPoints;
@@ -844,6 +861,12 @@ namespace PeDev.GpuSplines {
 		}
 
 		private void RemoveSplineInBatch(SplineBatch batch, SplineEntity entity) {
+#if UNITY_EDITOR
+			if (batch.splineEntities[m_Components[entity.id].indexInBatchSplines].id != entity.id) {
+				Debug.LogError($"You're trying to remove a spline from a batch that doesn't have it. id={entity.id}");
+				return;
+			}
+#endif
 			SplineComponent removeComponent = m_Components[entity.id];
 			int removeNumControlPoints = removeComponent.numControlPoints;
 			int removeNumVertices = removeComponent.numVertices;
@@ -868,9 +891,12 @@ namespace PeDev.GpuSplines {
 				m_Components[id].startIndexVertices -= removeNumVertices;
 				m_Components[id].indexInBatchSplines -= 1;
 			}
-
+			
 			// Remove in batch.
 			batch.RemoveAtSplineList(removeIndex);
+			
+			// Update removed component.
+			m_Components[entity.id].ClearDataForBatch();
 
 			batch.dirtyMesh = true;
 			batch.dirtyControlPoints = true;
@@ -902,25 +928,29 @@ namespace PeDev.GpuSplines {
 				return;
 			}
 			if (srcBatch == toBatch) {
+				Debug.LogError($"You're trying to move a spline's batch to the exact same batch. id={entity.id}, indexBatch={m_Components[entity.id].indexBatch}");
 				return;
 			}
 
+			int numControlPoints = m_Components[entity.id].numControlPoints;
 			// Copy to the new batch.
-			if (m_Components[entity.id].numControlPoints > 0) {
+			if (numControlPoints > 0) {
 				Array.Copy(srcBatch.controlPoints, m_Components[entity.id].startIndexControlPoint,
 					toBatch.controlPoints, toBatch.numControlPoints,
-					m_Components[entity.id].numControlPoints);
+					numControlPoints);
 			}
 
 			// Remove in old batch.
 			RemoveSplineInBatch(srcBatch, entity);
 			
 			// set up the values for new batch.
-			int addIndex = toBatch.splineCount;
-			m_Components[entity.id].indexBatch = toBatch.indexBatch;
-			m_Components[entity.id].indexInBatchSplines = addIndex;
-			m_Components[entity.id].startIndexControlPoint = toBatch.numControlPoints;
-			m_Components[entity.id].startIndexVertices = toBatch.numVertices;
+			int indexInBatchSplines = toBatch.splineCount;
+			m_Components[entity.id].SetDataForBatch(
+				toBatch.indexBatch, 
+				indexInBatchSplines, 
+				numControlPoints, 
+				toBatch.numControlPoints, 
+				toBatch.numVertices);
 			
 			toBatch.numControlPoints += m_Components[entity.id].numControlPoints;
 			toBatch.numVertices += m_Components[entity.id].numVertices;
