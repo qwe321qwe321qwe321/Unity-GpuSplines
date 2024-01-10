@@ -443,10 +443,6 @@ namespace PeDev.GpuSplines {
 				comp.numVerticesPerSegment = value;
 				// The spline in the new batch has to be the last one, so we don't need to update other splines. 
 				newBatch.numVertices += numVerticesDiff;
-				
-				if (newBatch.numVertices < 0) {
-					Debug.LogError($"There is something wrong with SplineBatch. {newBatch}");
-				}
 				return;
 			}
 			
