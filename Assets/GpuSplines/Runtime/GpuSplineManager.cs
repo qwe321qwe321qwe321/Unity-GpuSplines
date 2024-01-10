@@ -31,6 +31,11 @@ namespace PeDev.GpuSplines {
 		public GpuSplineContext Context { get; } = new GpuSplineContext();
 
 		private void Awake() {
+			if (renderMode == GpuSplineContext.DrawMode.DrawProcedural && !SystemInfo.supportsComputeShaders) {
+				// DrawProcedural needs to support compute buffer. 
+				renderMode = GpuSplineContext.DrawMode.DrawMesh;
+				Debug.LogWarning("This platform doesn't support Compute Shaders, so DrawMode.DrawProcedural cannot perform");
+			}
 			Context.SetDrawMode(renderMode)
 				.SetOptimizeLinearVertices(optimizeLinearVertices);
 		}
