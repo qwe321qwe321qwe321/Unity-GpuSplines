@@ -3,6 +3,14 @@ A faster spline/line renderer for Unity using the GPU, focusing mainly on the pe
 
 This project is inspired by the [simonboily/gpuspline](https://github.com/simonboily/gpuspline).
 
+// table of content
+- [Features](#features)
+- [Demo](#demo)
+- [Installation](#installation)
+- [Dependencies](#dependencies)
+- [Environment](#environment)
+- [How I achieved the low cost of modifying control points?](#how-i-achieved-the-low-cost-of-modifying-control-points)
+
 ## Features
 - Fast spline/line rendering using the GPU.
 - Extremely low cost of modifying the control points.
@@ -44,6 +52,9 @@ https://github.com/qwe321qwe321qwe321/Unity-GpuSplines/assets/23000374/cef63a54-
 - Package Manager `https://github.com/qwe321qwe321qwe321/Unity-GpuSplines.git?path=Assets/GpuSplines`.
 - Or download the repository and copy the `Assets/GpuSplines` folder to your project.
 
+## Dependencies
+- [stella3d/SharedArray](https://github.com/stella3d/SharedArray) - To reduce the cost of converting between NativeArray and managed array.
+
 ## Environment
 - Unity 2019.4.40f1
 - .NET 4.x
@@ -52,5 +63,12 @@ https://github.com/qwe321qwe321qwe321/Unity-GpuSplines/assets/23000374/cef63a54-
 
 I did not test on other versions, but it should work on the versions that support Burst and Jobs.
 
-## Dependencies
-- [stella3d/SharedArray](https://github.com/stella3d/SharedArray) - To reduce the cost of converting between NativeArray and managed array.
+## How I achieved the low cost of modifying control points?
+For the typical implement of line renderers, they need to update the mesh vertices on the CPU when the control points are modified. 
+This is a high cost operation, especially when the number of control points is large.
+
+I learned a trick from [simonboily/gpuspline](https://github.com/simonboily/gpuspline), which is to keep the mesh itself unchanged and only update the control points in the shader by maintaining a vector array(the maximum size is 1000). This is a low cost operation, and it is the key to the low cost of modifying control points.
+After that, I improved the performance of modifying control points by:
+- Constructing the Job-friendly structures for the whole Gpu spline system and provided the Jobified APIs to modify the control points to maximize the benefit from the Unity Job System and Burst Compiler.
+- Optimizing the vertices data and giving an `Graphics.DrawProcedural` way to draw.
+- Using the SharedArray to reduce the cost of converting between NativeArray and managed array.
