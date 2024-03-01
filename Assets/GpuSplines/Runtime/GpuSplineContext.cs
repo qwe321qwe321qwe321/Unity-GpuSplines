@@ -10,12 +10,25 @@ using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
 namespace PeDev.GpuSplines {
+	/// <summary>
+	/// The core class of the GPU spline system.
+	/// </summary>
 	public partial class GpuSplineContext {
 		private const int MinimumVerticesPerSegment = 2;
 		private const int MinCapacity = 16;
 
+		/// <summary>
+		/// The mode to draw the spline.
+		/// </summary>
 		public enum DrawMode {
+			/// <summary>
+			/// Draw the spline by Graphics.DrawMesh.
+			/// </summary>
 			DrawMesh,
+			/// <summary>
+			/// Draw the spline by Graphics.DrawProcedural, which is generally better than DrawMesh.
+			/// But this mode is only available on platforms that support compute shaders.
+			/// </summary>
 			DrawProcedural
 		}
 		

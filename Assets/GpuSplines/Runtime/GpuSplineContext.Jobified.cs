@@ -222,6 +222,9 @@ namespace PeDev.GpuSplines {
 		public int numControlPoints;
 	}
 	    
+	/// <summary>
+	/// Modify the control points of the spline with the input array.
+	/// </summary>
 	[BurstCompile]
 	public struct ModifySplineControlPointsJob : IJobParallelFor {
 		[ReadOnly]
@@ -241,7 +244,7 @@ namespace PeDev.GpuSplines {
 		}
 	}
 	
-	public struct BatchSplineInput2 {
+	public struct BatchSplineInputWithArray {
 		public SplineEntity entity;
 		public int numControlPoints;
 
@@ -271,14 +274,14 @@ namespace PeDev.GpuSplines {
 	}
 	
 	[BurstCompile]
-	public struct CopyTransformPositionToBatchSplineInput2Job : IJobParallelForTransform {
+	public struct CopyTransformPositionToBatchSplineInputWithArrayJob : IJobParallelForTransform {
 		[ReadOnly]
 		public NativeArray<int> batchIndices;
 		[ReadOnly]
 		public NativeArray<int> controlPointIndices;
 		
 		[NativeDisableParallelForRestriction]
-		public NativeArray<BatchSplineInput2> destination;
+		public NativeArray<BatchSplineInputWithArray> destination;
 
 		public void Execute(int index, TransformAccess transform) {
 			unsafe {
@@ -287,10 +290,13 @@ namespace PeDev.GpuSplines {
 		}
 	}
 	    
+	/// <summary>
+	/// Modify the control points of the spline with the nested array as the input.
+	/// </summary>
 	[BurstCompile]
-	public struct ModifySplineControlPointsJob2 : IJobParallelFor {
+	public struct ModifySplineControlPointsWithNestedArraysJob : IJobParallelFor {
 		[ReadOnly]
-		public NativeArray<BatchSplineInput2> inputEntities;
+		public NativeArray<BatchSplineInputWithArray> inputs;
 		    
 		public bool insertFirstLastPoints;
 		    
@@ -298,7 +304,7 @@ namespace PeDev.GpuSplines {
 
 		    
 		public unsafe void Execute(int index) {
-			BatchSplineInput2 input = inputEntities[index];
+			BatchSplineInputWithArray input = inputs[index];
 			SplineEntity entity = input.entity;
 			splineContext.ModifyPoints(entity, (float3*)input.inputControlPointsPtr.ToPointer(), 0, input.numControlPoints, insertFirstLastPoints);
 		}

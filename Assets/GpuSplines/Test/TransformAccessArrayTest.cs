@@ -28,11 +28,11 @@ namespace PeDev {
 	    private JobHandle m_JobHandle;
 	    private Random m_Random;
 
-	    public bool useInput2 = false;
+	    public bool useNestedArrayInput = false;
 	    private NativeArray<BatchSplineInput> m_Splines;
 	    private SharedArray<Vector3, float3> m_SharedPositions;
 	    
-	    private NativeArray<BatchSplineInput2> m_Splines2;
+	    private NativeArray<BatchSplineInputWithArray> m_Splines2;
 	    private NativeArray<float3>[] m_SplineControlPoints2;
 	    private NativeArray<int> m_IndexSplines;
 	    private NativeArray<int> m_IndexControlPoints;
@@ -67,7 +67,7 @@ namespace PeDev {
 
 		    m_Splines = new NativeArray<BatchSplineInput>(splineCount, Allocator.Persistent);
 		    
-		    m_Splines2 = new NativeArray<BatchSplineInput2>(splineCount, Allocator.Persistent);
+		    m_Splines2 = new NativeArray<BatchSplineInputWithArray>(splineCount, Allocator.Persistent);
 		    m_SplineControlPoints2 = new NativeArray<float3>[splineCount];
 
 		    m_IndexSplines = new NativeArray<int>(objectCount, Allocator.Persistent);
@@ -95,7 +95,7 @@ namespace PeDev {
 				    m_IndexSplines[startIndex + j] = i;
 				    m_IndexControlPoints[startIndex + j] = j;
 			    }
-			    m_Splines2[i] = new BatchSplineInput2() {
+			    m_Splines2[i] = new BatchSplineInputWithArray() {
 				    entity = entity, inputControlPoints = m_SplineControlPoints2[i], numControlPoints = numControlPoints,
 			    };
 
@@ -164,16 +164,16 @@ namespace PeDev {
 		   
 
 		    var splineContextJobified = m_Context.BeginJobifiedContext(Allocator.TempJob);
-		    if (useInput2) {
+		    if (useNestedArrayInput) {
 			    // Copy transform.position to m_SharedPositions.
-			    m_JobHandle = new CopyTransformPositionToBatchSplineInput2Job() {
+			    m_JobHandle = new CopyTransformPositionToBatchSplineInputWithArrayJob() {
 				    destination = m_Splines2,
 				    batchIndices = m_IndexSplines,
 				    controlPointIndices = m_IndexControlPoints
 			    }.Schedule(m_TransformAccessArray, m_JobHandle);
 			    // Jobified update spline control points.
-			    m_JobHandle = new ModifySplineControlPointsJob2() {
-				    inputEntities = m_Splines2,
+			    m_JobHandle = new ModifySplineControlPointsWithNestedArraysJob() {
+				    inputs = m_Splines2,
 				    insertFirstLastPoints = true,
 				    splineContext = splineContextJobified,
 			    }.Schedule(m_Splines.Length, 4, m_JobHandle);

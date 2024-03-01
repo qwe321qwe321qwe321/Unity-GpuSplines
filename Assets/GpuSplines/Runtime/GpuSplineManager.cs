@@ -1,7 +1,10 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace PeDev.GpuSplines {
+	/// <summary>
+	/// The manager of the GPU spline. It is a singleton class.
+	/// You don't have to directly use this manager to use the GPU spline, it is just an example of how to use the GPU spline.
+	/// </summary>
 	public class GpuSplineManager : MonoBehaviour {
 		#region Singleton
 		private static GpuSplineManager s_Instance;
@@ -24,10 +27,16 @@ namespace PeDev.GpuSplines {
 		}
 		#endregion
 
+		[Tooltip("The render method of the spline. DrawProcedural is faster than DrawMesh, but it requires compute buffer support. If the platform doesn't support compute shaders, it will automatically switch to DrawMesh.")]
 		public GpuSplineContext.DrawMode renderMode;
+		
+		[Tooltip("If true, the spline will optimize linear vertices. This will minimize the number of vertices in the linear spline.")]
 		public bool optimizeLinearVertices;
+		
+#if UNITY_EDITOR
 		public bool drawControlPointsInGizmos = false;
 		public bool drawBoundsInGizmos = false;
+#endif
 		public GpuSplineContext Context { get; } = new GpuSplineContext();
 
 		private void Awake() {
@@ -51,6 +60,7 @@ namespace PeDev.GpuSplines {
 		}
 
 
+#if UNITY_EDITOR
 		private void OnDrawGizmos() {
 			if (drawControlPointsInGizmos) {
 				GpuSplineGizmos.DrawAllControlPoints(Context, Color.yellow, 0.1f);
@@ -60,5 +70,6 @@ namespace PeDev.GpuSplines {
 				GpuSplineGizmos.DrawAllBatchBounds(Context, Color.green);
 			}
 		}
+#endif
 	}
 }
