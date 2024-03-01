@@ -15,7 +15,7 @@ This project is inspired by the [simonboily/gpuspline](https://github.com/simonb
 - Support for the following drawing modes:
     - [Graphics.DrawMesh](https://docs.unity3d.com/ScriptReference/Graphics.DrawMesh.html)
     - [Graphics.DrawProcedural](https://docs.unity3d.com/ScriptReference/Graphics.DrawProcedural.html)
-        * DrawProcedural is faster than DrawMesh from preparing vertices in cpu, But it is only available on platforms that support compute buffers.
+      * DrawProcedural is faster than DrawMesh since it does not need to prepare the mesh vertices in the CPU, but it is only available on platforms that support compute buffers.
 
 # Demo
 ## Jobified move points
