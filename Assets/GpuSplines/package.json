@@ -1,0 +1,25 @@
+{
+  "name": "com.pedev.unity-gpusplines",
+  "displayName": "Unity-GpuSplines @PeDev",
+  "version": "1.0.0",
+  "unity": "2019.4",
+  "documentationUrl": "https://github.com/qwe321qwe321qwe321/Unity-GpuSplines",
+  "changelogUrl": "https://github.com/qwe321qwe321qwe321/Unity-GpuSplines/releases",
+  "licensesUrl": "https://github.com/qwe321qwe321qwe321/Unity-GpuSplines/blob/main/LICENSE",
+  "description": "A faster spline/line renderer using the GPU, focusing mainly on the performance of modifying control points, i.e. it is quite useful as a 2D Rope renderer.",
+  "dependencies": {
+    "com.stella3d.sharedarray" : "git+https://github.com/stella3d/SharedArray.git"
+  },
+  "keywords": [
+    "line renderer",
+    "rope renderer",
+    "gpu spline",
+    "spline renderer"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "PeDev",
+    "email": "aegis321123@gmail.com",
+    "url": "https://github.com/qwe321qwe321qwe321/Unity-GpuSplines"
+  }
+}
