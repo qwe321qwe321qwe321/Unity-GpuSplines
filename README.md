@@ -33,6 +33,13 @@ https://github.com/qwe321qwe321qwe321/Unity-GpuLines/assets/23000374/4591f99e-20
 
 https://github.com/qwe321qwe321qwe321/Unity-GpuLines/assets/23000374/32cf3b62-fc8b-4839-9221-0d55eaa6113f
 
+## Rope simulation. (Jobified) 
+* Control points: ~21890
+* Splines: ~2189
+* ~470 fps in [Bionic Bay](https://store.steampowered.com/app/1928690/Bionic_Bay/?utm_source=github&utm_campaign=reveal&utm_medium=gpusplines)
+
+https://github.com/qwe321qwe321qwe321/Unity-GpuSplines/assets/23000374/cef63a54-2368-4187-9d99-539f7bf3eaab
+
 # Environment
 - Unity 2019.4.40f1
 - .NET 4.x
