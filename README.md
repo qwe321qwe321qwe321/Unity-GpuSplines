@@ -77,7 +77,8 @@ I did not test on other versions, but it should work on the versions that suppor
 For the typical implement of line renderers, they need to update the mesh vertices on the CPU when the control points are modified. 
 This is a high cost operation, especially when the number of control points is large.
 
-I learned a trick from [simonboily/gpuspline](https://github.com/simonboily/gpuspline), which is to keep the mesh itself unchanged and only update the control points in the shader by maintaining a vector array(the maximum size is 1000). This is a low cost operation, and it is the key to the low cost of modifying control points.
+I learned a trick from [simonboily/gpuspline](https://github.com/simonboily/gpuspline), which is to keep the mesh itself unchanged and only update the control points in the shader by maintaining a vector array(the maximum size is 1000). Then the shader will calculate the correct position of the vertices of the spline based on that vector array.
+This is much much cheaper than the original method, and it is the key to the low cost of modifying control points.
 
 After that, I improved the performance of modifying control points by:
 - Constructing the Job-friendly structures for the whole Gpu spline system and provided the Jobified APIs to modify the control points to maximize the benefit from the Unity Job System and Burst Compiler.
