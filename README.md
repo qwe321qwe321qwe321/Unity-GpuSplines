@@ -3,13 +3,18 @@ A faster spline/line renderer for Unity using the GPU, Job Systems + Burst Compi
 
 This project is inspired by the [simonboily/gpuspline](https://github.com/simonboily/gpuspline).
 
-- [Features](#features)
-- [Demo](#demo)
-- [Installation](#installation)
-- [Dependencies](#dependencies)
-- [Getting Started](#getting-started)
-- [Environment](#environment)
-- [How I achieved the low cost of modifying control points?](#how-i-achieved-the-low-cost-of-modifying-control-points)
+- [Unity-GpuSplines](#unity-gpusplines)
+  - [Features](#features)
+  - [Demo](#demo)
+    - [Jobified move points](#jobified-move-points)
+    - [Non-jobified add points, change color, move points](#non-jobified-add-points-change-color-move-points)
+    - [Rope simulation (Jobified)](#rope-simulation-jobified)
+  - [Installation](#installation)
+  - [Dependencies](#dependencies)
+  - [Getting Started](#getting-started)
+  - [Environment](#environment)
+  - [How I achieved the low cost of modifying control points?](#how-i-achieved-the-low-cost-of-modifying-control-points)
+
 
 ## Features
 - Fast spline/line rendering using the GPU.
