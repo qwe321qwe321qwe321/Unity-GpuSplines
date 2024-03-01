@@ -6,8 +6,8 @@ This project is inspired by the [simonboily/gpuspline](https://github.com/simonb
 - [Unity-GpuSplines](#unity-gpusplines)
   - [Features](#features)
   - [Demo](#demo)
-    - [Jobified move points](#jobified-move-points)
-    - [Non-jobified add points, change color, move points](#non-jobified-add-points-change-color-move-points)
+    - [Jobified modifying points](#jobified-modifying-points)
+    - [Non-jobified adding points, changing color, modifying points](#non-jobified-adding-points-changing-color-modifying-points)
     - [Rope simulation (Jobified)](#rope-simulation-jobified)
   - [Installation](#installation)
   - [Dependencies](#dependencies)
@@ -31,7 +31,7 @@ This project is inspired by the [simonboily/gpuspline](https://github.com/simonb
       * DrawProcedural is faster than DrawMesh since it does not need to prepare the mesh vertices in the CPU, but it is only available on platforms that support compute buffers.
 
 ## Demo
-### Jobified move points
+### Jobified modifying points
 * Control points: 14000
 * Splines: 2000
 * Batches: 15
@@ -40,7 +40,7 @@ This project is inspired by the [simonboily/gpuspline](https://github.com/simonb
 
 https://github.com/qwe321qwe321qwe321/Unity-GpuLines/assets/23000374/4591f99e-202a-4e96-9493-4341d704d980
 
-### Non-jobified add points, change color, move points
+### Non-jobified adding points, changing color, modifying points
 * Control points: ~83160
 * Splines: ~6930
 * Batches: ~615
