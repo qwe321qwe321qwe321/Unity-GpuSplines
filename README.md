@@ -1,5 +1,5 @@
 # Unity-GpuSplines
-A faster spline/line renderer for Unity using the GPU, focusing mainly on the performance of **modifying control points**.
+A faster spline/line renderer for Unity using the GPU, Job Systems + Burst Compiler, focusing mainly on the performance of **modifying control points**.
 
 This project is inspired by the [simonboily/gpuspline](https://github.com/simonboily/gpuspline).
 
@@ -7,6 +7,7 @@ This project is inspired by the [simonboily/gpuspline](https://github.com/simonb
 - [Demo](#demo)
 - [Installation](#installation)
 - [Dependencies](#dependencies)
+- [Getting Started](#getting-started)
 - [Environment](#environment)
 - [How I achieved the low cost of modifying control points?](#how-i-achieved-the-low-cost-of-modifying-control-points)
 
@@ -72,6 +73,7 @@ For the typical implement of line renderers, they need to update the mesh vertic
 This is a high cost operation, especially when the number of control points is large.
 
 I learned a trick from [simonboily/gpuspline](https://github.com/simonboily/gpuspline), which is to keep the mesh itself unchanged and only update the control points in the shader by maintaining a vector array(the maximum size is 1000). This is a low cost operation, and it is the key to the low cost of modifying control points.
+
 After that, I improved the performance of modifying control points by:
 - Constructing the Job-friendly structures for the whole Gpu spline system and provided the Jobified APIs to modify the control points to maximize the benefit from the Unity Job System and Burst Compiler.
 - Optimizing the vertices data and giving an `Graphics.DrawProcedural` way to draw.
