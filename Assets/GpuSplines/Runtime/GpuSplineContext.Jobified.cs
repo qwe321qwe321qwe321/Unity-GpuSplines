@@ -25,7 +25,17 @@ namespace PeDev.GpuSplines {
 			public NativeArray<bool> tempSplineBatchDirtyControlPoints;
 			
 			[BurstCompile]
-			public unsafe void ModifyPoint(SplineEntity entity, int index, in float3 point, bool insertFirstLastPoints) {
+			public void ModifyPoint(SplineEntity entity, int index, in float3 point, bool insertFirstLastPoints) {
+				ModifyPoint(entity, index, point.x, point.y, point.z, insertFirstLastPoints);
+			}
+			
+			[BurstCompile]
+			public void ModifyPoint(SplineEntity entity, int index, in Vector3 point, bool insertFirstLastPoints) {
+				ModifyPoint(entity, index, point.x, point.y, point.z, insertFirstLastPoints);
+			}
+			
+			[BurstCompile]
+			private unsafe void ModifyPoint(SplineEntity entity, int index, float pointX, float pointY, float pointZ, bool insertFirstLastPoints) {
 				SplineComponent comp = componentArray[entity.id];
 				int indexRange = insertFirstLastPoints ? 
 					comp.numControlPoints - 2 :
@@ -43,7 +53,7 @@ namespace PeDev.GpuSplines {
 
 				var batchCPs = batch.UnsafeControlPoints;
 				batchCPs[startIndexInBatch + index] = new float4(
-					point.x, point.y, point.z, 
+					pointX, pointY, pointZ, 
 					batchCPs[startIndexInBatch + index].w
 				);
 
