@@ -1,7 +1,6 @@
-using PeDev.GpuSplines;
 using UnityEngine;
 
-namespace GpuSplines.Test {
+namespace PeDev.GpuSplines.Sample {
 	public class TestGUI : MonoBehaviour {
 		private void OnGUI() {
 			var context = GpuSplineManager.Instance.Context;

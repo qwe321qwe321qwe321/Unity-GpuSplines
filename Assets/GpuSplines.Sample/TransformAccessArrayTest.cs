@@ -11,7 +11,7 @@ using UnityEngine.Jobs;
 using UnityEngine.Profiling;
 using Random = Unity.Mathematics.Random;
 
-namespace PeDev {
+namespace PeDev.GpuSplines.Sample {
     public class TransformAccessArrayTest : MonoBehaviour {
 	    public Color lineColor = Color.white;
 	    public bool createPrimitive = true;

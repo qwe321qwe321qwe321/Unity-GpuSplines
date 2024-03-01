@@ -1,11 +1,9 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Profiling;
 using Random = UnityEngine.Random;
 
-namespace PeDev.GpuSplines {
+namespace PeDev.GpuSplines.Sample {
 	public class GpuLinesTestComponent : MonoBehaviour {
 		public Vector3[] points = new [] {
 			new Vector3(-5f, 0f, 0f),
