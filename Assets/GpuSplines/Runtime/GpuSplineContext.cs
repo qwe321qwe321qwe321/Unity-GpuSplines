@@ -57,7 +57,7 @@ namespace PeDev.GpuSplines {
 		internal int ActiveBatchCount => m_ActiveBatchCount;
 		
 		
-#if ACCUMULATE_STATISTICS
+#if GPU_SPLINES_ACCUMULATE_STATISTICS
 		private int m_TotalControlPoints = 0;
 		/// <summary>
 		/// Number of control points in the context.
@@ -881,7 +881,7 @@ namespace PeDev.GpuSplines {
 			batch.dirtyMesh = true;
 			batch.dirtyControlPoints = true;
 			
-#if ACCUMULATE_STATISTICS
+#if GPU_SPLINES_ACCUMULATE_STATISTICS
 			m_TotalControlPoints += inputNumControlPoints;
 #endif
 		}
@@ -919,7 +919,7 @@ namespace PeDev.GpuSplines {
 			batch.numControlPoints -= removeNumControlPoints;
 			batch.numVertices -= removeNumVertices;
 			
-#if ACCUMULATE_STATISTICS
+#if GPU_SPLINES_ACCUMULATE_STATISTICS
 			m_TotalControlPoints -= removeNumControlPoints;
 #endif
 			
@@ -1001,7 +1001,7 @@ namespace PeDev.GpuSplines {
 			toBatch.dirtyMesh = true;
 			toBatch.dirtyControlPoints = true;
 			
-#if ACCUMULATE_STATISTICS
+#if GPU_SPLINES_ACCUMULATE_STATISTICS
 			m_TotalControlPoints += m_Components[entity.id].numControlPoints;
 #endif
 		}

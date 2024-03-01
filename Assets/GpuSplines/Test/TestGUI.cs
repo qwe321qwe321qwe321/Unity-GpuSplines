@@ -6,7 +6,7 @@ namespace GpuSplines.Test {
 		private void OnGUI() {
 			var context = GpuSplineManager.Instance.Context;
 			if (context != null) {
-#if ACCUMULATE_STATISTICS
+#if GPU_SPLINES_ACCUMULATE_STATISTICS
 				GUI.Label(new Rect(10, 10, 500, 20), $"Control Points: {context.TotalControlPoints}");
 #endif
 				GUI.Label(new Rect(10, 30, 500, 20), $"Splines: {context.TotalSplines}");
