@@ -164,11 +164,11 @@ namespace PeDev.GpuSplines {
 		/// <returns></returns>
 		public JobifiedContext BeginJobifiedContext(Allocator allocator) {
 			NativeArray<JobifiedSplineBatch> tempSplineBatches = new NativeArray<JobifiedSplineBatch>(
-				m_ActiveSplineCount, allocator);
+				m_ActiveBatchCount, allocator);
 			NativeArray<bool> tempSplineBatchDirtyControlPoints = new NativeArray<bool>(
-				m_ActiveSplineCount, allocator, NativeArrayOptions.ClearMemory);
+				m_ActiveBatchCount, allocator, NativeArrayOptions.ClearMemory);
 			unsafe {
-				for (int i = 0; i < m_ActiveSplineCount; i++) {
+				for (int i = 0; i < m_ActiveBatchCount; i++) {
 					tempSplineBatches[i] = new JobifiedSplineBatch() {
 						controlPointArrayPtr = (IntPtr)(m_SplineBatches[i].controlPointsNativeArray.GetUnsafePtr())
 					};
@@ -185,7 +185,7 @@ namespace PeDev.GpuSplines {
 
 		public void EndJobifiedContext(JobifiedContext context) {
 			// Apply back dirty flags.
-			for (int i = 0; i < m_ActiveSplineCount; i++) {
+			for (int i = 0; i < m_ActiveBatchCount; i++) {
 				m_SplineBatches[i].dirtyControlPoints |= context.tempSplineBatchDirtyControlPoints[i];
 			}
 

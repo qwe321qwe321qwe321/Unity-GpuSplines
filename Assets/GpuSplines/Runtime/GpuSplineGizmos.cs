@@ -8,7 +8,7 @@ namespace PeDev.GpuSplines {
 			}
 			Gizmos.color = color;
 			var batches = context.GetSplineBatches();
-			for (int i = 0; i < context.ActiveSplineCount; i++) {
+			for (int i = 0; i < context.ActiveBatchCount; i++) {
 				for (int j = 0; j < batches[i].numControlPoints; j++) {
 					Gizmos.DrawSphere(batches[i].controlPoints[j], radius);
 				}
@@ -21,7 +21,7 @@ namespace PeDev.GpuSplines {
 			}
 			Gizmos.color = color;
 			var batches = context.GetSplineBatches();
-			for (int i = 0; i < context.ActiveSplineCount; i++) {
+			for (int i = 0; i < context.ActiveBatchCount; i++) {
 				Bounds bounds = batches[i].meshBounds;
 				Gizmos.DrawWireCube(bounds.center, bounds.size);
 			}

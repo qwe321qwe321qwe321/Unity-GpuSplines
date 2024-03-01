@@ -50,11 +50,30 @@ namespace PeDev.GpuSplines {
 		
 		private readonly List<SplineBatch> m_SplineBatches = new List<SplineBatch>();
 		
-		private int m_ActiveSplineCount = 0;
+		private int m_ActiveBatchCount = 0;
 		
 		
 		internal IReadOnlyList<SplineBatch> GetSplineBatches() => m_SplineBatches.AsReadOnly();
-		internal int ActiveSplineCount => m_ActiveSplineCount;
+		internal int ActiveBatchCount => m_ActiveBatchCount;
+		
+		
+#if ACCUMULATE_STATISTICS
+		private int m_TotalControlPoints = 0;
+		/// <summary>
+		/// Number of control points in the context.
+		/// </summary>
+		public int TotalControlPoints => m_TotalControlPoints;
+#endif
+		
+		/// <summary>
+		/// Number of splines in the context.
+		/// </summary>
+		public int TotalSplines => m_Count;
+		
+		/// <summary>
+		/// Number of batches in the context.
+		/// </summary>
+		public int TotalBatches => m_ActiveBatchCount;
 		
 		/// <summary>
 		/// Set the mode to draw.
@@ -131,7 +150,7 @@ namespace PeDev.GpuSplines {
 				m_SplineBatches.Clear();
 			}
 
-			m_ActiveSplineCount = 0;
+			m_ActiveBatchCount = 0;
 		}
 
 		#region Add/Remove Splines
@@ -579,14 +598,14 @@ namespace PeDev.GpuSplines {
 		#region Render
 
 		public void Update() {
-			for (int i = 0; i < m_ActiveSplineCount; i++) {
+			for (int i = 0; i < m_ActiveBatchCount; i++) {
 				SplineBatch batch = m_SplineBatches[i];
 				if (!batch.IsValid()) {
-					Debug.LogError($"Weird behaviour: The batch is not a valid batch. There must be something wrong in code. {i}/{m_ActiveSplineCount} \n{batch}");
+					Debug.LogError($"Weird behaviour: The batch is not a valid batch. There must be something wrong in code. {i}/{m_ActiveBatchCount} \n{batch}");
 					continue;
 				}
 				if (batch.IsEmpty()) {
-					Debug.LogWarning($"Weird behaviour: The batch should not be empty if it is active. {i}/{m_ActiveSplineCount}\n{batch}");
+					Debug.LogWarning($"Weird behaviour: The batch should not be empty if it is active. {i}/{m_ActiveBatchCount}\n{batch}");
 					continue;
 				}
 				
@@ -756,7 +775,7 @@ namespace PeDev.GpuSplines {
 		
 		#region Batches
 		private SplineBatch GetBatchOrCreateOne(SplineBatchKey batchKey, int numControlPoints, int numVertices) {
-			for (int i = 0; i < m_ActiveSplineCount; i++) {
+			for (int i = 0; i < m_ActiveBatchCount; i++) {
 				if (m_SplineBatches[i].batchProperties.Equals(batchKey) &&
 				    (m_SplineBatches[i].numVertices + numVertices) <= SplineBatch.MAX_NUM_VERTICES &&
 				    (m_SplineBatches[i].numControlPoints + numControlPoints) <= SplineBatch.MAX_NUM_CONTROL_POINTS) {
@@ -764,13 +783,15 @@ namespace PeDev.GpuSplines {
 				}
 			}
 
-			if (m_ActiveSplineCount < m_SplineBatches.Count) {
+			if (m_ActiveBatchCount < m_SplineBatches.Count) {
 				// Take from inactive batches.
-				SplineBatch activeBatch = m_SplineBatches[m_ActiveSplineCount];
+				SplineBatch activeBatch = m_SplineBatches[m_ActiveBatchCount];
 				activeBatch.batchProperties = batchKey;
 				activeBatch.SetAllDirty();
-				m_ActiveSplineCount += 1;
-				Debug.Log($"Take from inactive batches. Now active batches: {m_ActiveSplineCount}");
+				m_ActiveBatchCount += 1;
+#if GPU_SPLINE_DEBUG
+				Debug.Log($"Take from inactive batches. Now active batches: {m_ActiveBatchCount}");
+#endif
 				return activeBatch;
 			}
 
@@ -780,8 +801,10 @@ namespace PeDev.GpuSplines {
 			newBatch.SetAllDirty();
 			m_SplineBatches.Add(newBatch);
 			
-			m_ActiveSplineCount += 1;
-			Debug.Log($"Created new batch. Now there are ({m_ActiveSplineCount}/{m_SplineBatches.Count}) active batches, {m_Count} splines.");
+			m_ActiveBatchCount += 1;
+#if GPU_SPLINE_DEBUG
+			Debug.Log($"Created new batch. Now there are ({m_ActiveBatchCount}/{m_SplineBatches.Count}) active batches, {m_Count} splines.");
+#endif
 			return newBatch;
 		}
 
@@ -857,6 +880,10 @@ namespace PeDev.GpuSplines {
 			batch.numVertices += m_Components[entity.id].numVertices;
 			batch.dirtyMesh = true;
 			batch.dirtyControlPoints = true;
+			
+#if ACCUMULATE_STATISTICS
+			m_TotalControlPoints += inputNumControlPoints;
+#endif
 		}
 
 		private void AddFirstAndLastPointToSplineInBatch(SplineBatch batch, int firstIndex, int lastIndex) {
@@ -892,6 +919,10 @@ namespace PeDev.GpuSplines {
 			batch.numControlPoints -= removeNumControlPoints;
 			batch.numVertices -= removeNumVertices;
 			
+#if ACCUMULATE_STATISTICS
+			m_TotalControlPoints -= removeNumControlPoints;
+#endif
+			
 			// Update the indices in components.
 			SplineEntity[] batchSplines = batch.splineEntities;
 			for (int i = removeIndex + 1; i < count; i++) {
@@ -911,10 +942,10 @@ namespace PeDev.GpuSplines {
 			batch.dirtyControlPoints = true;
 
 			if (batch.IsEmpty()) {
-				if (m_ActiveSplineCount > 0) {
+				if (m_ActiveBatchCount > 0) {
 					// Move the batch to the last active pos.
 					int swapIndex = batch.indexBatch;
-					int lastIndex = m_ActiveSplineCount - 1;
+					int lastIndex = m_ActiveBatchCount - 1;
 					// Move the last one to the position.
 					SplineBatch lastActiveBatch = m_SplineBatches[lastIndex];
 					m_SplineBatches[swapIndex] = lastActiveBatch;
@@ -926,9 +957,11 @@ namespace PeDev.GpuSplines {
 					// Move the empty one to the last index.
 					m_SplineBatches[lastIndex] = batch;
 					batch.indexBatch = lastIndex;
-					m_ActiveSplineCount -= 1;
+					m_ActiveBatchCount -= 1;
 				}
-				Debug.Log($"Removed all spline in this batch. Active Batch Count: {m_ActiveSplineCount}");
+#if GPU_SPLINE_DEBUG
+				Debug.Log($"Removed all spline in this batch. Active Batch Count: {m_ActiveBatchCount}");
+#endif
 			}
 		}
 
@@ -967,6 +1000,10 @@ namespace PeDev.GpuSplines {
 
 			toBatch.dirtyMesh = true;
 			toBatch.dirtyControlPoints = true;
+			
+#if ACCUMULATE_STATISTICS
+			m_TotalControlPoints += m_Components[entity.id].numControlPoints;
+#endif
 		}
 
 		#endregion

@@ -78,7 +78,7 @@ namespace PeDev {
 		    int startIndex = 0;
 		    for (int i = 0; i < splineCount; i++) {
 			    int numControlPoints = Mathf.Clamp(slots[i], 2, 998);
-			    Debug.Log($"startIndex = {startIndex}, num = {numControlPoints}");
+			    //Debug.Log($"startIndex = {startIndex}, num = {numControlPoints}");
 			    var entity = m_Context.AddSpline(
 				    positions, startIndex, 
 				    numControlPoints, true, 10, 
