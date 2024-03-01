@@ -3,7 +3,6 @@ A faster spline/line renderer for Unity using the GPU, focusing mainly on the pe
 
 This project is inspired by the [simonboily/gpuspline](https://github.com/simonboily/gpuspline).
 
-// table of content
 - [Features](#features)
 - [Demo](#demo)
 - [Installation](#installation)
