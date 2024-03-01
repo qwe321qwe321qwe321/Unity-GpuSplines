@@ -30,6 +30,7 @@ This project is inspired by the [simonboily/gpuspline](https://github.com/simonb
 * Splines: 2000
 * Batches: 15
 * ~450 fps
+* [`TransformAccessArrayTest.cs`](./Assets/GpuSplines.Sample/TransformAccessArrayTest.cs)
 
 https://github.com/qwe321qwe321qwe321/Unity-GpuLines/assets/23000374/4591f99e-202a-4e96-9493-4341d704d980
 
@@ -37,6 +38,7 @@ https://github.com/qwe321qwe321qwe321/Unity-GpuLines/assets/23000374/4591f99e-20
 * Control points: ~83160
 * Splines: ~6930
 * Batches: ~615
+* [`GpuLinesTestComponent.cs`](./Assets/GpuSplines.Sample/GpuLinesTestComponent.cs).
 
 https://github.com/qwe321qwe321qwe321/Unity-GpuLines/assets/23000374/32cf3b62-fc8b-4839-9221-0d55eaa6113f
 
@@ -48,11 +50,14 @@ https://github.com/qwe321qwe321qwe321/Unity-GpuLines/assets/23000374/32cf3b62-fc
 https://github.com/qwe321qwe321qwe321/Unity-GpuSplines/assets/23000374/cef63a54-2368-4187-9d99-539f7bf3eaab
 
 ## Installation
-- Package Manager `https://github.com/qwe321qwe321qwe321/Unity-GpuSplines.git?path=Assets/GpuSplines`.
+- Package Manager -> Add package from git URL `https://github.com/qwe321qwe321qwe321/Unity-GpuSplines.git?path=Assets/GpuSplines`.
 - Or download the repository and copy the `Assets/GpuSplines` folder to your project.
 
 ## Dependencies
 - [stella3d/SharedArray](https://github.com/stella3d/SharedArray) - To reduce the cost of converting between NativeArray and managed array.
+
+## Getting Started
+Nah... I will write it later. You can refer to the `Assets/GpuSplines.Sample/Samples.unity` scene for now.
 
 ## Environment
 - Unity 2019.4.40f1
