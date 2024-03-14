@@ -61,6 +61,7 @@ https://github.com/qwe321qwe321qwe321/Unity-GpuSplines/assets/23000374/cef63a54-
 
 ## Dependencies
 - [stella3d/SharedArray](https://github.com/stella3d/SharedArray) - To reduce the cost of converting between NativeArray and managed array.
+  - [I forked SharedArray and made a slight change](https://github.com/qwe321qwe321qwe321/SharedArray) since @stella3d does no longer update the repo. This project depends the forked one.
 
 ## Getting Started
 Nah... I will write it later. You can refer to the `Assets/GpuSplines.Sample/Samples.unity` scene for now.
@@ -79,6 +80,7 @@ This is a high cost operation, especially when the number of control points is l
 
 I learned a trick from [simonboily/gpuspline](https://github.com/simonboily/gpuspline), which is to keep the mesh itself unchanged and only update the control points in the shader by maintaining a vector array(the maximum size is 1000). Then the shader will calculate the correct position of the vertices of the spline based on that vector array.
 This is much much cheaper than the original method, and it is the key to the low cost of modifying control points.
+(This is very likely how the `SkinnedMeshRenderer` does -- a fixed mesh with changing bones)
 
 After that, I improved the performance of modifying control points by:
 - Constructing the Job-friendly structures for the whole Gpu spline system and provided the Jobified APIs to modify the control points to maximize the benefit from the Unity Job System and Burst Compiler.
