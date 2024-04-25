@@ -39,7 +39,9 @@ float3 ComputeSplineVertex(const int cp0_idx, const float t, const half leftOrRi
     const float width = lerp(cp1.w, cp2.w, t);
     // extend half width.
     tangent = normalize(tangent) * width * 0.5;
-    return position + lerp(float3(-tangent.y, tangent.x, 0), float3(tangent.y, -tangent.x, 0), leftOrRightVertex);
+    // Perpendicular to the tangent and view direction.
+    float3 orthogonal = cross(tangent, normalize(_WorldSpaceCameraPos.xyz - position));
+    return position + lerp(orthogonal, -orthogonal, leftOrRightVertex);
 }
 
 #endif
